@@ -4,7 +4,7 @@ set -e
 # Implementation Workflow Bootstrap Script
 # This script installs the iw-install skill which can then install the full workflow
 
-REPO_URL="https://raw.githubusercontent.com/nicholasjackson/claude-implementation-workflow/main"
+REPO_URL="https://raw.githubusercontent.com/jumppad-labs/iw/main"
 SKILL_NAME="iw-install"
 
 echo "=============================================="
@@ -111,5 +111,5 @@ echo "   /iw-plan <task>   - Create implementation plan"
 echo "   /iw-implement <#> - Execute plan"
 echo ""
 echo "For more information, see:"
-echo "  https://github.com/nicholasjackson/claude-implementation-workflow"
+echo "  https://github.com/jumppad-labs/iw"
 echo ""

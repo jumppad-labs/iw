@@ -25,8 +25,8 @@ from urllib.request import urlopen, Request
 from urllib.error import URLError, HTTPError
 
 # GitHub repository configuration
-GITHUB_USER = "nicholasjackson"
-GITHUB_REPO = "claude-implementation-workflow"
+GITHUB_USER = "jumppad-labs"
+GITHUB_REPO = "iw"
 GITHUB_BRANCH = "main"
 GITHUB_API_BASE = f"https://api.github.com/repos/{GITHUB_USER}/{GITHUB_REPO}"
 GITHUB_RAW_BASE = f"https://raw.githubusercontent.com/{GITHUB_USER}/{GITHUB_REPO}/{GITHUB_BRANCH}"

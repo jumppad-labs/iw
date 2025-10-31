@@ -345,10 +345,10 @@ This skill is part of the Implementation Workflow suite:
 
 ## Repository
 
-Source: https://github.com/nicholasjackson/claude-implementation-workflow
+Source: https://github.com/jumppad-labs/iw
 
 The installer fetches all files from:
-`https://raw.githubusercontent.com/nicholasjackson/claude-implementation-workflow/main/`
+`https://raw.githubusercontent.com/jumppad-labs/iw/main/`
 
 ## Important Notes
 

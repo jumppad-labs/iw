@@ -47,7 +47,7 @@ The Implementation Workflow is a comprehensive set of Claude Code skills and com
 Run this one-line command to install the workflow:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/nicholasjackson/claude-implementation-workflow/main/bootstrap.sh | bash
+curl -sSL https://raw.githubusercontent.com/jumppad-labs/iw/main/bootstrap.sh | bash
 ```
 
 This will:
