@@ -268,7 +268,7 @@ Contributions are welcome! Areas for contribution:
 
 ## License
 
-MIT License - See LICENSE file for details
+Apache 2 - See LICENSE file for details
 
 ## Support
 
