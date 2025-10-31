@@ -13,7 +13,7 @@ The Implementation Workflow is a comprehensive set of Claude Code skills and com
 
 ## What Gets Installed
 
-### Skills (9 total)
+### Skills (10 total)
 - **iw-planner** - Create detailed implementation plans through interactive research process
 - **iw-executor** - Execute implementation plans with phase-based commits and tracking
 - **iw-workflow** - Workflow guidance and documentation structure explanation
@@ -25,10 +25,11 @@ The Implementation Workflow is a comprehensive set of Claude Code skills and com
 - **go-dev-guidelines** - Go development patterns and TDD workflow (language-specific)
 - **skill-creator** - Guide for creating new skills
 
-### Slash Commands (3 total)
+### Slash Commands (4 total)
 - **/iw-plan** - Create detailed implementation plan
 - **/iw-implement** - Execute implementation plan
 - **/iw-help** - Show workflow guidance and available commands
+- **/iw-install** - Manage workflow installation (install, update, uninstall)
 
 ### Hooks (2 total)
 - **load_workflow.sh** - Session start hook showing documentation structure
@@ -80,68 +81,6 @@ Install to `~/.claude/`:
 - Available in all projects
 - Personal configuration
 - Not committed to repos
-
-## Manual Installation Steps
-
-If you prefer manual installation or want Claude to execute it step by step:
-
-### For Project-Level Installation
-
-1. **Navigate to your project root** (where you want the workflow)
-
-2. **Create .claude directory structure**:
-```bash
-mkdir -p .claude/skills .claude/commands .claude/hooks
-```
-
-3. **Download and install files** from GitHub:
-```bash
-# Install skills
-curl -sSL https://api.github.com/repos/nicholasjackson/claude-implementation-workflow/contents/.claude/skills | \
-  jq -r '.[].name' | while read skill; do
-    mkdir -p ".claude/skills/$skill"
-    curl -sSL "https://raw.githubusercontent.com/nicholasjackson/claude-implementation-workflow/main/.claude/skills/$skill/SKILL.md" \
-      -o ".claude/skills/$skill/SKILL.md"
-  done
-
-# Install commands
-curl -sSL "https://raw.githubusercontent.com/nicholasjackson/claude-implementation-workflow/main/.claude/commands/iw-plan.md" \
-  -o ".claude/commands/iw-plan.md"
-curl -sSL "https://raw.githubusercontent.com/nicholasjackson/claude-implementation-workflow/main/.claude/commands/iw-implement.md" \
-  -o ".claude/commands/iw-implement.md"
-curl -sSL "https://raw.githubusercontent.com/nicholasjackson/claude-implementation-workflow/main/.claude/commands/iw-help.md" \
-  -o ".claude/commands/iw-help.md"
-
-# Install hooks
-curl -sSL "https://raw.githubusercontent.com/nicholasjackson/claude-implementation-workflow/main/.claude/hooks/load_workflow.sh" \
-  -o ".claude/hooks/load_workflow.sh"
-curl -sSL "https://raw.githubusercontent.com/nicholasjackson/claude-implementation-workflow/main/.claude/hooks/list_skills.sh" \
-  -o ".claude/hooks/list_skills.sh"
-chmod +x .claude/hooks/*.sh
-```
-
-4. **Download Python scripts and assets** for each skill:
-```bash
-# For each skill that has scripts
-for skill in iw-planner iw-executor iw-git-workflow iw-github-issue-reader iw-github-pr-creator skill-creator; do
-  mkdir -p ".claude/skills/$skill/scripts"
-  # Download scripts directory contents from GitHub
-done
-
-# For iw-planner, also download assets
-mkdir -p .claude/skills/iw-planner/assets
-# Download template files
-```
-
-5. **Restart Claude Code** or start a new session
-
-### For User-Level Installation
-
-Replace `.claude` with `~/.claude` in the steps above:
-```bash
-mkdir -p ~/.claude/skills ~/.claude/commands ~/.claude/hooks
-# Then follow the same download steps but use ~/.claude instead
-```
 
 ## Usage
 
@@ -218,7 +157,7 @@ The typical workflow for a planned feature:
 
 ## Updating the Workflow
 
-### Via Bootstrap Method
+### Via Install Command
 
 If you used the bootstrap installation:
 ```
@@ -229,12 +168,11 @@ This fetches the latest version from GitHub and overwrites existing files.
 
 ### Manual Update
 
-1. Remove existing workflow files
-2. Follow installation steps again with latest version
+Re-run the bootstrap command or manual installation steps to get the latest version.
 
 ## Uninstalling
 
-### Via Bootstrap Method
+### Via Install Command
 
 ```
 /iw-install --uninstall
@@ -270,19 +208,19 @@ The workflow creates a structured documentation approach:
 
 ```
 .docs/
-   issues/              # Issue-based implementation plans
-      <number>/
-          <number>-plan.md       # Implementation plan
-          <number>-tasks.md      # Task checklist
-          <number>-context.md    # Quick reference
-          <number>-research.md   # Research notes
-   adhoc/               # Ad-hoc plans not tied to issues
-      <name>/
-          (same structure)
-   knowledge/           # Institutional knowledge
-       learnings/       # Corrections and discoveries
-       architecture/    # Architecture documentation
-       gotchas/         # Known issues and workarounds
+├── issues/              # Issue-based implementation plans
+│   └── <number>/
+│       ├── <number>-plan.md       # Implementation plan
+│       ├── <number>-tasks.md      # Task checklist
+│       ├── <number>-context.md    # Quick reference
+│       └── <number>-research.md   # Research notes
+├── adhoc/               # Ad-hoc plans not tied to issues
+│   └── <name>/
+│       └── (same structure)
+└── knowledge/           # Institutional knowledge
+    ├── learnings/       # Corrections and discoveries
+    ├── architecture/    # Architecture documentation
+    └── gotchas/         # Known issues and workarounds
 ```
 
 ## Customization
@@ -297,11 +235,7 @@ Create additional language-specific guideline skills following the pattern of `g
 
 ### Adding Custom Skills
 
-Use the `skill-creator` skill to create new custom skills:
-
-```
-Use the Skill tool to invoke skill-creator
-```
+Use the `skill-creator` skill to create new custom skills.
 
 ## Troubleshooting
 
