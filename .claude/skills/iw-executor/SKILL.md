@@ -170,6 +170,11 @@ For each phase in the plan:
    - [ ] [Task 2 description] - [file path] - [effort]
    - [x] [Task 3 description] - [file path] - [effort] (already completed)
 
+   📋 Automation Reminder:
+   - Each task will be automatically marked complete in tasks.md upon completion
+   - Discoveries will be automatically documented in context.md as found
+   - Phase commit will be created automatically after you confirm phase completion
+
    Proceeding with implementation...
    ```
 
@@ -192,31 +197,77 @@ For each phase in the plan:
       - Check that tests pass
       - Verify the change works as expected
 
-   d. **Update Progress (AUTOMATIC - DO IMMEDIATELY):**
-      - **IMMEDIATELY** after completing task, mark it done
-      - Use `scripts/update_task.py` to check off the task in tasks.md
-      - Example: `update_task.py tasks.md "Task description" --status done`
-      - **DO NOT WAIT** for user to ask - this is automatic
-      - This ensures progress is saved incrementally
+   ⚠️ **CRITICAL AUTOMATION CHECKPOINT** ⚠️
 
-   e. **Document Discoveries (AUTOMATIC WHEN FOUND):**
-      - **IMMEDIATELY** when interesting findings emerge (unexpected patterns, edge cases, etc.)
-      - Use `scripts/update_context.py` to add to context.md
-      - Example: `update_context.py context.md --section "Key Findings" --content "Found that..."`
-      - **DO NOT WAIT** for user to ask - document as you discover
+   d. **Update Progress (REQUIRED - AUTOMATIC - DO NOT SKIP):**
+
+      **IMMEDIATELY** after completing task implementation and verification:
+
+      1. Call the update script using Bash tool:
+         ```bash
+         python3 .claude/skills/iw-executor/scripts/update_task.py \
+           <worktree-path>/.docs/issues/<N>/<N>-tasks.md \
+           "<task description pattern>" \
+           --status done
+         ```
+
+      2. Verify the update succeeded (script outputs "✓ Updated task status")
+
+      3. Continue to next task
+
+      **IMPORTANT**:
+      - This is NOT optional - it MUST happen after every task completion
+      - DO NOT wait for user to request this update
+      - DO NOT batch multiple task updates together
+      - Update happens IMMEDIATELY, before moving to the next task
+      - This ensures progress survives context compaction and session interruptions
+
+   e. **Document Discoveries (REQUIRED WHEN FOUND - AUTOMATIC):**
+
+      **IMMEDIATELY** when any of these occur during implementation:
+      - Unexpected patterns discovered
+      - Edge cases identified
+      - Integration points found
+      - Performance characteristics observed
+      - Workarounds needed
+      - Deviations from the plan
+
+      Call the context update script using Bash tool:
+      ```bash
+      python3 .claude/skills/iw-executor/scripts/update_context.py \
+        <worktree-path>/.docs/issues/<N>/<N>-context.md \
+        --section "Implementation Discoveries" \
+        --content "<brief description of discovery>"
+      ```
+
+      **IMPORTANT**:
+      - This is NOT optional - discoveries MUST be documented when found
+      - DO NOT wait for user to request documentation
+      - DO NOT delay documentation until end of phase
+      - Document happens IMMEDIATELY when discovery is made
       - This preserves knowledge across context compaction
 
 3. **Phase Completion Verification:**
    After all tasks in the phase complete:
 
-   a. **Run Phase Success Criteria:**
+   a. **Verify All Task Updates Were Made:**
+      - Read the tasks.md file in the worktree
+      - Confirm all tasks in current phase are marked [x]
+      - If any tasks are not marked complete, update them now using update_task.py
+      - This is a safety check to ensure automation worked
+
+   b. **Run Phase Success Criteria:**
       - Execute automated verification commands from plan.md
       - Perform manual verification steps as listed
       - Document results
 
-   b. **Confirm with User:**
+   c. **Confirm with User:**
       ```
       Phase [N]: [Phase Name] - COMPLETED
+
+      ✅ Task Tracking Updated:
+      - All [X] tasks in Phase [N] marked complete in tasks.md
+      - [Y] discoveries documented in context.md
 
       Completed tasks:
       - [x] [Task 1 description]
@@ -230,37 +281,64 @@ For each phase in the plan:
       Ready to proceed to Phase [N+1]?
       ```
 
-   c. **Wait for User Confirmation:**
+   d. **Wait for User Confirmation:**
       - User can approve to continue
       - User can request adjustments
       - User can pause implementation
 
-   d. **Create Phase Commit (AUTOMATIC AFTER CONFIRMATION):**
-      **IMMEDIATELY** after user confirms phase completion:
-      - Use `iw-git-workflow` skill to create phase commit
-      - Run `scripts/create_phase_commit.py --phase <N> --plan-path <plan-path> --worktree <worktree-path>`
-      - **DO NOT WAIT** for user to ask - commit happens automatically
-      - Script does:
-        - Stages all changes in worktree
-        - Creates commit with phase-based message
-        - Includes plan reference and issue number
-      - Commit message format:
-        ```
-        Phase N: <Phase Name>
+   ⚠️ **CRITICAL AUTOMATION CHECKPOINT - PHASE COMMIT** ⚠️
 
-        <Description of what was implemented>
+   e. **Create Phase Commit (REQUIRED - AUTOMATIC - DO NOT SKIP):**
 
-        Plan: <path-to-plan>
-        Issue: #<issue-number>
-        ```
-      - Inform user:
-        ```
-        ✓ Phase N committed
+      **IMMEDIATELY** after user confirms phase completion (step d above):
 
-        Commit: abc1234 - Phase N: <Phase Name>
-        Files changed: 5
-        Insertions: 120, Deletions: 10
-        ```
+      1. Determine phase number and plan path from context
+      2. Call the phase commit script using Bash tool:
+         ```bash
+         python3 .claude/skills/iw-git-workflow/scripts/create_phase_commit.py \
+           --phase <N> \
+           --plan-path <worktree-path>/.docs/issues/<issue-number> \
+           --worktree <worktree-path>
+         ```
+
+      3. Verify the commit succeeded (script outputs JSON with "success": true)
+
+      4. Parse the JSON response and extract commit hash and stats
+
+      5. Inform user with commit details:
+         ```
+         ✅ Phase <N> Automatically Committed
+
+         Commit: <commit-hash> - Phase <N>: <Phase Name>
+         Files changed: <count>
+         Insertions: <count>, Deletions: <count>
+
+         This commit was created automatically as specified in the workflow.
+         ```
+
+      **IMPORTANT**:
+      - This is NOT optional - phase commits MUST happen after user confirms
+      - DO NOT wait for user to explicitly request the commit
+      - DO NOT skip this step even if changes seem small
+      - Commit happens IMMEDIATELY after confirmation, before starting next phase
+      - This ensures each phase is atomically committed with proper attribution
+
+      **Script behavior**:
+      - Stages all changes in worktree with `git add -A`
+      - Creates commit with phase-based message
+      - Extracts phase name from plan.md
+      - Includes plan reference and issue number
+      - Returns JSON with commit hash and statistics
+
+      **Commit message format**:
+      ```
+      Phase N: <Phase Name>
+
+      <Description of what was implemented>
+
+      Plan: .docs/issues/<issue-number>
+      Issue: #<issue-number>
+      ```
 
 ### Step 4: Handle Issues and Deviations
 
@@ -493,6 +571,60 @@ STOP and prompt the user when:
 - Check tests pass before marking tasks complete
 - Document all interesting findings
 - Don't assume - verify with code and tests
+
+### Automation Requirements Summary
+
+**⚠️ CRITICAL: The following automations are REQUIRED and MUST happen without user prompting:**
+
+#### After Each Task Completion:
+```bash
+# REQUIRED: Mark task as done in tasks.md
+python3 .claude/skills/iw-executor/scripts/update_task.py \
+  <tasks-file-path> \
+  "<task description pattern>" \
+  --status done
+```
+- Happens: IMMEDIATELY after task implementation and tests pass
+- Trigger: Task completion
+- Frequency: Once per task
+- DO NOT: Wait for user to ask
+- DO NOT: Batch multiple tasks before updating
+
+#### When Discoveries Are Made:
+```bash
+# REQUIRED: Document discovery in context.md
+python3 .claude/skills/iw-executor/scripts/update_context.py \
+  <context-file-path> \
+  --section "Implementation Discoveries" \
+  --content "<discovery description>"
+```
+- Happens: IMMEDIATELY when discovery is made
+- Trigger: Unexpected finding, workaround needed, deviation from plan
+- Frequency: As discoveries occur (may be 0 or many per phase)
+- DO NOT: Wait for user to ask
+- DO NOT: Defer to end of phase
+
+#### After User Confirms Phase Completion:
+```bash
+# REQUIRED: Create phase commit
+python3 .claude/skills/iw-git-workflow/scripts/create_phase_commit.py \
+  --phase <N> \
+  --plan-path <plan-directory> \
+  --worktree <worktree-path>
+```
+- Happens: IMMEDIATELY after user confirms "Ready to proceed"
+- Trigger: User confirmation of phase completion
+- Frequency: Once per phase
+- DO NOT: Wait for user to explicitly request commit
+- DO NOT: Skip even if changes are small
+
+#### Why These Automations Matter:
+
+1. **Task updates** ensure progress survives context compaction and crashes
+2. **Context updates** preserve institutional knowledge for future work
+3. **Phase commits** create atomic, reviewable units of work with proper attribution
+
+**If you forget these automations, the implementation will not follow the workflow specification.**
 
 ## Resources
 
