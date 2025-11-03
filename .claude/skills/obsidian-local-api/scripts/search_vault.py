@@ -51,13 +51,14 @@ def search_vault(query: str, context_length: int = 100) -> bool:
     """
     client = get_client()
 
-    # Search via API
-    endpoint = "/search/simple/"
+    # Search via API using query parameters (not JSON body)
+    endpoint = "/search/simple"
     success, data, error = client.post(
         endpoint,
-        json_data={
+        data='',  # Empty body to force POST
+        params={
             "query": query,
-            "contextLength": context_length
+            "context": context_length
         }
     )
 

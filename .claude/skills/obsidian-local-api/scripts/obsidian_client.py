@@ -38,9 +38,9 @@ class ObsidianClient:
     def __init__(
         self,
         api_key: Optional[str] = None,
-        host: str = "localhost",
-        port: int = 27124,
-        use_https: bool = True
+        host: Optional[str] = None,
+        port: Optional[int] = None,
+        use_https: Optional[bool] = None
     ):
         """
         Initialize Obsidian API client.
@@ -52,8 +52,8 @@ class ObsidianClient:
             use_https: Use HTTPS (default: True)
         """
         self.api_key = api_key or self._load_config_value("api_key")
-        self.host = host or self._load_config_value("host", "localhost")
-        self.port = port or int(self._load_config_value("port", "27124"))
+        self.host = host if host is not None else self._load_config_value("host", "localhost")
+        self.port = port if port is not None else int(self._load_config_value("port", "27124"))
         self.use_https = use_https if use_https is not None else self._load_config_value("https", True)
 
         # Build base URL
@@ -156,7 +156,7 @@ class ObsidianClient:
                 headers=req_headers,
                 params=params,
                 verify=False,  # Allow self-signed certificates
-                timeout=30
+                timeout=120
             )
 
             # Check for errors
@@ -237,7 +237,7 @@ class ObsidianClient:
         """
         return self._make_request("GET", endpoint, headers=headers, params=params)
 
-    def post(self, endpoint: str, data: Optional[str] = None, json_data: Optional[Dict] = None, headers: Optional[Dict] = None) -> Tuple[bool, Any, Optional[str]]:
+    def post(self, endpoint: str, data: Optional[str] = None, json_data: Optional[Dict] = None, headers: Optional[Dict] = None, params: Optional[Dict] = None) -> Tuple[bool, Any, Optional[str]]:
         """
         Send POST request.
 
@@ -246,11 +246,12 @@ class ObsidianClient:
             data: Request body (string)
             json_data: JSON request body (dict)
             headers: Optional headers
+            params: Query parameters
 
         Returns:
             Tuple of (success, response_data, error_message)
         """
-        return self._make_request("POST", endpoint, data=data, json_data=json_data, headers=headers)
+        return self._make_request("POST", endpoint, data=data, json_data=json_data, headers=headers, params=params)
 
     def put(self, endpoint: str, data: Optional[str] = None, headers: Optional[Dict] = None) -> Tuple[bool, Any, Optional[str]]:
         """
