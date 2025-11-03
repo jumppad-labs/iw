@@ -144,7 +144,16 @@ Shows workflow guidance, documentation structure, and available commands.
 
 ### Research Workflow
 
-For conducting systematic research on technical topics, academic papers, or code implementations:
+For conducting systematic research on technical topics, academic papers, or code implementations. **Now with Obsidian vault integration** for seamless personal knowledge management.
+
+#### Overview
+
+The research workflow supports flexible storage locations:
+- **.docs/research/** - Standard project location (default)
+- **Obsidian vault** - Auto-detected for personal knowledge base
+- **Custom paths** - Any location you specify
+
+Research happens in a temporary workspace, final report saved to your chosen location, and intermediate files are automatically cleaned up.
 
 #### 1. Create Research Plan
 
@@ -153,11 +162,12 @@ For conducting systematic research on technical topics, academic papers, or code
 ```
 
 This will:
-1. Ask about your research topic and questions
-2. Help define 3-5 specific research questions
-3. Identify source types needed (papers, code repos, docs, articles)
-4. Define scope boundaries (included/excluded topics)
-5. Create research plan in `.docs/research/<name>/`
+1. **Detect Obsidian vault** (if configured) and offer as workspace option
+2. Ask about your research topic and questions
+3. Help define 3-5 specific research questions
+4. Identify source types needed (papers, code repos, docs, articles)
+5. Define scope boundaries (included/excluded topics)
+6. Create research plan in chosen workspace location
 
 #### 2. Execute Research and Generate Report
 
@@ -189,6 +199,43 @@ This will:
 - Detailed analysis with evidence
 - Simple source citations
 - Recommendations
+
+#### Obsidian Integration
+
+If you have the `obsidian-local-api` skill configured:
+
+1. **Automatic vault detection:**
+   - Skill detects your Obsidian vault automatically
+   - Offers vault root as workspace option
+   - Seamless integration with your knowledge base
+
+2. **Live preview during research:**
+   - Work in vault root for live Obsidian preview
+   - See links and graph view while researching
+   - Leverage Obsidian features during work
+
+3. **Organized final storage:**
+   - Choose final report location (e.g., Research/ folder)
+   - Intermediate files auto-cleaned
+   - Only final report remains in vault
+
+**Setup:**
+1. Install Obsidian Local REST API plugin
+2. Configure via `obsidian-local-api` skill
+3. Start research with `/iw-research-plan`
+4. Select Obsidian vault when prompted
+
+**Example workflow:**
+```bash
+/iw-research-plan
+# → Choose "Obsidian Vault Root" as workspace
+# → Conduct research (files visible in Obsidian)
+/iw-research-execute
+# → Gather findings and sources
+# → Final prompt: "Save report to Research/ folder"
+# → Intermediate files auto-cleaned
+# → Final report at: vault/Research/my-topic-report.md
+```
 
 ## Workflow Overview
 

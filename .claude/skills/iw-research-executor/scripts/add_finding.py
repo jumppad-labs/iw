@@ -2,15 +2,79 @@
 """Add a finding to the research findings file."""
 
 import sys
+import json
 import argparse
 from pathlib import Path
 from datetime import datetime
 
 
+def load_research_config(research_name: str) -> dict:
+    """
+    Load research configuration from .research-config.json.
+
+    Tries multiple locations to find the research directory:
+    1. .docs/research/<name>/ (default location)
+    2. Current directory / <name>/ (for custom workspaces)
+    3. Parent directories searching for config
+
+    Args:
+        research_name: Name of the research project
+
+    Returns:
+        Dictionary with config data or defaults
+
+    Raises:
+        FileNotFoundError: If research directory cannot be found
+    """
+    # Try default location first
+    default_path = Path(".docs/research") / research_name
+    config_file = default_path / ".research-config.json"
+
+    if config_file.exists():
+        with open(config_file, 'r') as f:
+            return json.load(f)
+
+    # Try current directory
+    local_path = Path.cwd() / research_name
+    config_file = local_path / ".research-config.json"
+
+    if config_file.exists():
+        with open(config_file, 'r') as f:
+            return json.load(f)
+
+    # Search parent directories (up to 3 levels)
+    for parent in [Path.cwd(), Path.cwd().parent, Path.cwd().parent.parent]:
+        search_path = parent / research_name
+        config_file = search_path / ".research-config.json"
+        if config_file.exists():
+            with open(config_file, 'r') as f:
+                return json.load(f)
+
+    # Fallback to default if no config found (backward compatibility)
+    return {
+        "research_name": research_name,
+        "workspace_path": ".docs/research",
+        "created_date": datetime.now().strftime("%Y-%m-%d"),
+        "obsidian_integration": False
+    }
+
+
 def add_finding(research_name: str, theme: str, finding: str, source_ref: str):
     """Add finding to findings.md under specified theme."""
-    research_dir = Path(".docs/research") / research_name
+    # Load research config to get workspace location
+    config = load_research_config(research_name)
+    workspace_path = Path(config["workspace_path"])
+
+    research_dir = workspace_path / research_name
     findings_file = research_dir / "findings.md"
+
+    # Verify research directory exists
+    if not research_dir.exists():
+        raise FileNotFoundError(
+            f"Research directory not found: {research_dir}\n"
+            f"Expected workspace: {workspace_path}\n"
+            f"Ensure research was initialized with /iw-research-plan"
+        )
 
     # Create findings.md if doesn't exist
     if not findings_file.exists():

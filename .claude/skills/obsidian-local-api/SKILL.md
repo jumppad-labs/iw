@@ -29,6 +29,67 @@ Before performing operations, verify:
 
 Use `scripts/config_helper.py` for first-time configuration setup.
 
+## Fallback Behavior
+
+The skill uses a **try-API-first with filesystem fallback** approach for reliability:
+
+### Primary Method: REST API
+- All operations attempt REST API first
+- Faster for small files
+- Provides Obsidian features (caching, plugins, live updates)
+- Requires Obsidian running
+
+### Fallback Method: Filesystem
+- Activates automatically on API failure
+- Handles large files (>1MB) that timeout via API
+- Works when Obsidian closed or API unavailable
+- Requires vault path configuration
+
+### When Fallback Activates
+
+Filesystem fallback automatically activates when:
+- API request times out (>120 seconds)
+- API returns error (connection refused, authentication failed, etc.)
+- File size causes API processing failure
+- Obsidian is not running
+
+### Vault Path Configuration
+
+**First-time setup**: When fallback is first needed, you'll be prompted:
+```
+⚠️  Filesystem Fallback Required
+The Obsidian API operation failed or timed out.
+To continue, please provide your Obsidian vault path.
+
+Enter vault path (or press Enter to cancel): /Users/name/Documents/ObsidianVault
+✅ Vault path validated
+✅ Configuration saved. Future operations will use filesystem fallback automatically.
+```
+
+**Manual configuration**:
+```bash
+python3 scripts/config_helper.py --set-vault-path "/path/to/vault"
+```
+
+**View current configuration**:
+```bash
+python3 scripts/config_helper.py --show
+```
+
+### Transparency
+
+Fallback is transparent - scripts work identically whether using API or filesystem:
+- Same commands
+- Same parameters
+- Same output format
+- Same error handling
+
+You'll see informational messages when fallback is used:
+```
+ℹ️  API write failed (Request timed out), trying filesystem fallback...
+✅ Note created: Research/large-report.md
+```
+
 ## Workflow Decision Tree
 
 ### User Request: "Create a note"

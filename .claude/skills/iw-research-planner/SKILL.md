@@ -32,6 +32,47 @@ Extract:
 - Primary questions
 - Intended use/outcome
 
+### Step 1.5: Select Workspace Location
+
+After understanding intent, determine where to store research files during work.
+
+**Detect Obsidian Vault (if available):**
+
+1. **Check if obsidian-local-api skill is available:**
+   - Try to invoke the obsidian-local-api skill
+   - If successful, proceed with detection
+   - If not available, skip Obsidian options
+
+2. **Test Obsidian API connection:**
+   ```bash
+   # Use obsidian_client.py to test connection
+   python3 .claude/skills/obsidian-local-api/scripts/obsidian_client.py --test
+   ```
+
+3. **Get vault information:**
+   - If connection successful, get vault path from API
+   - Offer vault root as workspace option
+
+**Prompt user for workspace location:**
+
+Present options using AskUserQuestion tool:
+
+```
+Where would you like to work on this research?
+
+Options:
+1. .docs/research (default) - Standard location in project docs
+2. [Obsidian Vault Root] - Your Obsidian vault (if detected)
+3. Custom path - Specify a different location
+
+Default: .docs/research
+```
+
+**Save choice:**
+- Pass selected workspace_path to init_research.py
+- Create `.research-config.json` in workspace
+- Store: research_name, workspace_path, created_date, obsidian_integration flag
+
 ### Step 2: Define Research Questions
 
 Work with user to create 3-5 specific research questions.
@@ -146,7 +187,8 @@ Present summary:
 ✓ Research Plan Created
 
 Research: [research-name]
-Location: .docs/research/[research-name]/
+Workspace: [workspace-path]/[research-name]/
+Obsidian integration: [enabled/disabled]
 
 Research Questions:
 1. [Question 1]
@@ -165,6 +207,9 @@ Success Criteria: [How completion will be measured]
 The research plan is ready. Next step:
 Use /iw-research-execute to gather information and generate report
 
+Note: Final report location will be selected after synthesis completes.
+Intermediate files will be cleaned up automatically.
+
 Ready to proceed with research execution?
 ```
 
@@ -179,12 +224,51 @@ Python script that creates the research directory structure and initializes temp
 python3 .claude/skills/iw-research-planner/scripts/init_research.py <research-name>
 ```
 
+**With workspace selection:**
+```bash
+python3 .claude/skills/iw-research-planner/scripts/init_research.py <research-name> --workspace /path/to/workspace --obsidian
+```
+
 **Creates:**
-- `.docs/research/<research-name>/` directory
+- `<workspace>/<research-name>/` directory
 - `research-plan.md` from template
 - `sources.md` file
 - `findings.md` file
 - `assets/` subdirectory
+- `.research-config.json` with workspace configuration
+
+### scripts/detect_obsidian.py (Helper)
+
+Helper script to detect Obsidian vault and test API connection.
+
+**Usage:**
+```bash
+python3 .claude/skills/iw-research-planner/scripts/detect_obsidian.py
+```
+
+**Returns** (JSON):
+```json
+{
+  "available": true,
+  "vault_path": "/Users/username/Obsidian/MyVault",
+  "vault_name": "MyVault",
+  "api_version": "1.5.0"
+}
+```
+
+**Or if not available:**
+```json
+{
+  "available": false,
+  "error": "Obsidian API not configured"
+}
+```
+
+**Implementation**:
+- Attempts to import obsidian_client from obsidian-local-api skill
+- Tests API connection
+- Queries vault information
+- Returns structured result for skill to parse
 
 ### assets/research-plan-template.md
 

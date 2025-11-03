@@ -115,6 +115,11 @@ def show_config():
             # Mask API key, show only first/last few chars
             masked = value[:4] + "*" * (len(value) - 8) + value[-4:] if len(value) > 8 else "****"
             print(f"  {key}: {masked}")
+        elif key == "vault_path" and value:
+            print(f"  {key}: {value}")
+            # Check if path exists
+            vault_exists = Path(value).exists()
+            print(f"    Status: {'✅ Exists' if vault_exists else '❌ Not found'}")
         else:
             print(f"  {key}: {value}")
 
@@ -215,6 +220,60 @@ def interactive_setup():
     elif 'https' not in config:
         config['https'] = True
 
+    # Vault Path (for filesystem fallback)
+    print("\n" + "=" * 50)
+    print("Vault Path Configuration (Optional)")
+    print("=" * 50)
+    print("The vault path enables filesystem fallback when API operations fail.")
+    print("This is useful for large files that exceed API timeouts.")
+
+    current_vault = config.get('vault_path', '')
+    if current_vault:
+        print(f"\nCurrent vault path: {current_vault}")
+
+    # Attempt auto-detection from API
+    vault_suggestion = None
+    if config.get('api_key'):
+        print("\nAttempting to detect vault path from API...")
+        try:
+            client = ObsidianClient(api_key=config.get('api_key'))
+            # Try to get vault info from API (if endpoint exists)
+            success, data, error = client.get("/vault/")
+            if success and isinstance(data, dict):
+                vault_suggestion = data.get('vault_path') or data.get('path')
+                if vault_suggestion:
+                    print(f"✅ Detected vault path: {vault_suggestion}")
+        except Exception as e:
+            print(f"⚠️  Could not detect vault path: {e}")
+
+    # Prompt for vault path
+    prompt_text = "\nEnter vault path"
+    if vault_suggestion:
+        prompt_text += f" (or press Enter for detected: {vault_suggestion})"
+    elif current_vault:
+        prompt_text += " (or press Enter to keep current)"
+    else:
+        prompt_text += " (or press Enter to skip)"
+    prompt_text += ": "
+
+    vault_input = input(prompt_text).strip()
+    if vault_input:
+        # User provided path
+        vault_path = Path(vault_input).expanduser()
+        if vault_path.exists() and vault_path.is_dir():
+            config['vault_path'] = str(vault_path)
+            print(f"✅ Vault path set to: {vault_path}")
+        else:
+            print(f"⚠️  Warning: Path does not exist or is not a directory: {vault_path}")
+            print(f"   You can update this later with: --set-vault-path")
+            config['vault_path'] = str(vault_path)
+    elif vault_suggestion and not current_vault:
+        # Use detected path
+        config['vault_path'] = vault_suggestion
+        print(f"✅ Using detected vault path: {vault_suggestion}")
+    elif not current_vault:
+        print("ℹ️  Vault path not configured. Filesystem fallback will prompt when needed.")
+
     # Save configuration
     print()
     if save_config(config):
@@ -250,6 +309,7 @@ Examples:
     parser.add_argument("--set-key", metavar="KEY", help="Set API key")
     parser.add_argument("--set-host", metavar="HOST", help="Set host address")
     parser.add_argument("--set-port", metavar="PORT", type=int, help="Set port number")
+    parser.add_argument("--set-vault-path", metavar="PATH", help="Set vault path for filesystem fallback")
     parser.add_argument("--test", action="store_true", help="Test connection")
 
     args = parser.parse_args()
@@ -263,6 +323,16 @@ Examples:
         set_config_value("host", args.set_host)
     elif args.set_port:
         set_config_value("port", args.set_port)
+    elif args.set_vault_path:
+        # Validate vault path before saving
+        vault_path = Path(args.set_vault_path).expanduser()
+        if vault_path.exists() and vault_path.is_dir():
+            set_config_value("vault_path", str(vault_path))
+            print(f"✅ Vault path set to: {vault_path}")
+        else:
+            print(f"❌ Invalid vault path: {vault_path}", file=sys.stderr)
+            print(f"   Path must exist and be a directory", file=sys.stderr)
+            sys.exit(1)
     elif args.test:
         test_connection()
     else:
