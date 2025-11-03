@@ -13,7 +13,9 @@ The Implementation Workflow is a comprehensive set of Claude Code skills and com
 
 ## What Gets Installed
 
-### Skills (10 total)
+### Skills (13 total)
+
+#### Implementation Workflow Skills
 - **iw-planner** - Create detailed implementation plans through interactive research process
 - **iw-executor** - Execute implementation plans with phase-based commits and tracking
 - **iw-workflow** - Workflow guidance and documentation structure explanation
@@ -22,14 +24,23 @@ The Implementation Workflow is a comprehensive set of Claude Code skills and com
 - **iw-github-issue-reader** - Load comprehensive GitHub issue information
 - **iw-github-pr-creator** - Create GitHub pull requests with plan summaries
 - **iw-git-workflow** - Manage git operations with worktrees and phase commits
+- **iw-research-planner** - Define research scope and create structured research plans
+- **iw-research-executor** - Gather information and automatically generate comprehensive reports
+- **iw-research-synthesizer** - Generate comprehensive reports (auto-invoked by executor)
+
+#### Development Guidelines
 - **go-dev-guidelines** - Go development patterns and TDD workflow (language-specific)
 - **skill-creator** - Guide for creating new skills
 
-### Slash Commands (4 total)
+### Slash Commands (6 total)
+
+#### Implementation Workflow Commands
 - **/iw-plan** - Create detailed implementation plan
 - **/iw-implement** - Execute implementation plan
 - **/iw-help** - Show workflow guidance and available commands
 - **/iw-install** - Manage workflow installation (install, update, uninstall)
+- **/iw-research-plan** - Create new research plan with questions and scope
+- **/iw-research-execute** - Gather information and generate comprehensive report
 
 ### Hooks (2 total)
 - **load_workflow.sh** - Session start hook showing documentation structure
@@ -130,6 +141,54 @@ This will:
 ```
 
 Shows workflow guidance, documentation structure, and available commands.
+
+### Research Workflow
+
+For conducting systematic research on technical topics, academic papers, or code implementations:
+
+#### 1. Create Research Plan
+
+```
+/iw-research-plan
+```
+
+This will:
+1. Ask about your research topic and questions
+2. Help define 3-5 specific research questions
+3. Identify source types needed (papers, code repos, docs, articles)
+4. Define scope boundaries (included/excluded topics)
+5. Create research plan in `.docs/research/<name>/`
+
+#### 2. Execute Research and Generate Report
+
+```
+/iw-research-execute
+```
+
+This will:
+1. Load your research plan
+2. Gather from multiple source types:
+   - Academic papers via WebSearch (Google Scholar, arXiv, etc.)
+   - Code repositories via GitHub exploration
+   - Technical documentation via official docs
+   - Blog posts and articles
+3. Organize findings by theme in `findings.md`
+4. Track all sources in `sources.md`
+5. Automatically generate comprehensive report:
+   - Analyze all gathered findings
+   - Generate executive summary (2-3 paragraphs)
+   - Organize key findings by theme
+   - Provide detailed analysis for each research question
+   - Include source references
+   - Add recommendations and next steps
+   - Create `research-report.md` in Obsidian-compatible markdown
+
+**Output**: Comprehensive research report with:
+- Executive summary
+- Key findings organized by theme
+- Detailed analysis with evidence
+- Simple source citations
+- Recommendations
 
 ## Workflow Overview
 
