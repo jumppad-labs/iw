@@ -10,7 +10,7 @@ This directory contains implementation plans and institutional knowledge.
 
 ## Creating Plans
 
-Use `/iw-plan <description or issue-number>` to create new implementation plans.
+Use `/plan <description or issue-number>` to create new implementation plans.
 
 The planner will automatically create the appropriate directory structure:
 - Issue-based: `.docs/issues/<issue-number>/`
@@ -24,7 +24,7 @@ The planner will automatically create the appropriate directory structure:
 - **Location**: `issues/` or `adhoc/` subdirectories
 - **Files**:
   - `<name>-plan.md` - Implementation phases with code
-  - `<name>-tasks.md` - Task checklist
+  - `<name>-tasks.md` - Task breakdown
   - `<name>-context.md` - Background and decisions
   - `<name>-research.md` - Research findings
 
@@ -42,9 +42,9 @@ See `knowledge/README.md` for detailed knowledge documentation guidelines.
 
 ## Workflow
 
-1. Use `/iw-plan` to create implementation plans
+1. Use `/plan` to create implementation plans
 2. Document learnings in `knowledge/learnings/` during work
 3. Promote learnings to `architecture/` when formalized
 4. Track recurring issues in `gotchas/`
 
-See the `iw-workflow` skill for complete process documentation.
+See the `iw-workflow` skill (auto-loaded) for complete process documentation.

@@ -2,6 +2,9 @@
 
 This directory contains project-specific technical knowledge, architectural decisions, and institutional knowledge.
 
+For general development standards, see `/CLAUDE.md`.
+For workflow and process information, see the `iw-workflow` skill (auto-loaded).
+
 ## Directory Structure
 
 ### `/architecture/` - Architectural Decisions and Patterns
@@ -30,6 +33,11 @@ Add to `.docs/knowledge/` when you discover:
 - **Common gotchas** that future developers should know
 - **Integration patterns** specific to this project
 
+**Do NOT add:**
+- General development standards → Use `CLAUDE.md`
+- Temporary research notes → Use `<name>-research.md` in plan files
+- Design decisions for a specific plan → Use `<name>-context.md` in plan files
+
 ## How to Document
 
 1. **Create a focused document** in the appropriate subdirectory
@@ -42,7 +50,7 @@ Add to `.docs/knowledge/` when you discover:
 
 When you discover new project-specific knowledge during implementation:
 
-1. Check if it belongs in `.docs/knowledge/` (project-specific)
+1. Check if it belongs in `.docs/knowledge/` (project-specific) vs `CLAUDE.md` (general)
 2. Create or update the appropriate document
 3. Add entry to this README
 4. Keep documents focused and scannable
