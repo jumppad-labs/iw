@@ -60,25 +60,8 @@ def append_to_note(path: str, content: str, heading: str = None) -> bool:
     if not path.endswith('.md'):
         path += '.md'
 
-    endpoint = f"/vault/{path}"
-
-    if heading:
-        # Use PATCH to insert at specific heading
-        success, data, error = client.patch(
-            endpoint,
-            json_data={
-                "action": "insert",
-                "heading": heading,
-                "content": content
-            }
-        )
-    else:
-        # Use POST to append to end
-        success, data, error = client.post(
-            endpoint,
-            data=content,
-            headers={"Content-Type": "text/markdown"}
-        )
+    # Append content via API with filesystem fallback
+    success, data, error = client.append_with_fallback(path, content, heading)
 
     if success:
         if heading:

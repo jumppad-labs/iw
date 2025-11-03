@@ -15,12 +15,34 @@ Creates:
 """
 
 import sys
+import json
 import argparse
 from datetime import datetime
 from pathlib import Path
+from typing import Optional
 
-def create_research_structure(research_name: str, base_path: Path = Path(".docs/research")) -> dict:
-    """Create research directory structure."""
+def create_research_structure(
+    research_name: str,
+    workspace_path: Optional[str] = None,
+    obsidian_integration: bool = False
+) -> dict:
+    """
+    Create research directory structure.
+
+    Args:
+        research_name: Name of the research project
+        workspace_path: Custom workspace location (default: .docs/research)
+        obsidian_integration: Whether using Obsidian vault
+
+    Returns:
+        Dictionary with research directory info and config
+    """
+    # Use provided workspace or default to .docs/research
+    if workspace_path:
+        base_path = Path(workspace_path)
+    else:
+        base_path = Path(".docs/research")
+
     research_dir = base_path / research_name
     created_date = datetime.now().strftime("%Y-%m-%d")
 
@@ -58,24 +80,57 @@ def create_research_structure(research_name: str, base_path: Path = Path(".docs/
         f.write(f"# Research Findings: {research_name}\n\n")
         f.write(f"**Last Updated**: {created_date}\n\n")
 
+    # Create configuration file
+    config_file = research_dir / ".research-config.json"
+    config_data = {
+        "research_name": research_name,
+        "workspace_path": str(base_path),
+        "created_date": created_date,
+        "obsidian_integration": obsidian_integration
+    }
+
+    with open(config_file, 'w') as f:
+        json.dump(config_data, f, indent=2)
+
     return {
         "research_dir": str(research_dir),
         "research_name": research_name,
-        "created_date": created_date
+        "created_date": created_date,
+        "workspace_path": str(base_path),
+        "config_file": str(config_file),
+        "obsidian_integration": obsidian_integration
     }
 
 def main():
     parser = argparse.ArgumentParser(description="Initialize research project structure")
     parser.add_argument("research_name", help="Name of the research project")
+    parser.add_argument(
+        "--workspace",
+        help="Workspace path (default: .docs/research)",
+        default=None
+    )
+    parser.add_argument(
+        "--obsidian",
+        action="store_true",
+        help="Enable Obsidian integration"
+    )
     args = parser.parse_args()
 
     try:
-        result = create_research_structure(args.research_name)
+        result = create_research_structure(
+            args.research_name,
+            workspace_path=args.workspace,
+            obsidian_integration=args.obsidian
+        )
         print(f"✅ Research project initialized: {result['research_dir']}")
+        print(f"   Workspace: {result['workspace_path']}")
+        print(f"   Config: {result['config_file']}")
+        if result['obsidian_integration']:
+            print(f"   Obsidian integration: enabled")
         print("\nNext steps:")
-        print("1. Use /research-plan to define research scope")
-        print("2. Use /research-execute to gather information")
-        print("3. Use /research-synthesize to generate report")
+        print("1. Use /iw-research-plan to define research scope")
+        print("2. Use /iw-research-execute to gather information")
+        print("3. Use /iw-research-synthesize to generate report")
         return 0
     except Exception as e:
         print(f"❌ Error: {e}", file=sys.stderr)

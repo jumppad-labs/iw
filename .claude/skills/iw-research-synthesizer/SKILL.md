@@ -76,6 +76,45 @@ Create 2-3 paragraph summary covering:
 - Paragraph 2: Methodology and approach
 - Paragraph 3: Key findings and conclusions
 
+### Step 3.5: Prompt for Final Report Location
+
+After generating the report framework, ask user where to save the final report.
+
+**Why separate from workspace?**
+- Workspace is temporary location for research work
+- Final location is permanent home for completed report
+- Allows organization (e.g., vault/Research folder vs vault root)
+- Enables cleanup of workspace without losing report
+
+**Prompt user for final location:**
+
+Use AskUserQuestion or direct prompt:
+
+```
+Research report generated successfully!
+
+Workspace location: {workspace_path}/{research_name}
+
+Where would you like to save the final report?
+
+Options:
+1. Same as workspace - Keep report in workspace (no move)
+2. Obsidian Research folder - {vault}/Research/{research_name}-report.md
+3. Custom path - Specify exact file path
+
+Note: Intermediate files (research-plan.md, sources.md, findings.md, assets/)
+will be cleaned up after moving the report.
+```
+
+**Validate input:**
+- Ensure path is absolute or relative to known location
+- Create parent directories if needed
+- Verify write permissions
+
+**Save choice:**
+- Store final_path in config or pass to move function
+- Use for file operations in Phase 5 (cleanup)
+
 ### Step 4: Structure Key Findings Section
 
 For each theme identified in findings.md:
@@ -250,14 +289,42 @@ Check report for:
 - [ ] Cross-references between sections work
 - [ ] Professional tone throughout
 
-### Step 10: Present Report
+### Step 10: Cleanup Workspace
+
+After moving report to final location, automatically cleanup intermediate files.
+
+**Files removed:**
+- `research-plan.md` - Planning document (temporary)
+- `sources.md` - Source list (temporary)
+- `findings.md` - Findings collection (temporary)
+- `assets/` - Supporting files directory
+- `.research-config.json` - Workspace config
+
+**Files kept:**
+- Final report at chosen destination
+
+**Confirmation message:**
+```
+✅ Research Complete!
+
+Final report: [final-path]
+Workspace cleaned: [workspace-path]
+
+Removed:
+- 4 files
+- 1 directory
+
+Your research is complete and organized!
+```
+
+### Step 11: Present Report
 
 Show summary statistics and report location:
 
 ```
 ✅ Research Report Generated Successfully!
 
-Report: .docs/research/<name>/research-report.md
+Report: [final-location]/research-report.md
 
 Statistics:
 - Research questions addressed: 5/5
@@ -362,6 +429,33 @@ python3 .claude/skills/iw-research-synthesizer/scripts/generate_report.py <resea
 - Writes research-report.md
 
 **Note:** The script provides structure, but Claude performs the actual synthesis and analysis based on the gathered findings.
+
+### scripts/validate_path.py (Helper)
+
+Helper to validate and prepare final report path.
+
+**Usage:**
+```bash
+python3 validate_path.py "/path/to/report.md"
+```
+
+**Returns** (JSON):
+```json
+{
+  "valid": true,
+  "absolute_path": "/full/path/to/report.md",
+  "directory": "/full/path/to",
+  "directory_exists": false,
+  "writable": true
+}
+```
+
+**Implementation:**
+- Converts relative paths to absolute
+- Checks parent directory existence
+- Verifies write permissions
+- Creates parent directories if needed
+- Returns validation result
 
 ### assets/report-template.md
 

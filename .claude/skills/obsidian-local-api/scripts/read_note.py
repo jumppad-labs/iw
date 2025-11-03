@@ -56,25 +56,18 @@ def read_note(path: str, format_type: str = "markdown") -> bool:
     if not path.endswith('.md'):
         path += '.md'
 
-    # Build request
-    endpoint = f"/vault/{path}"
-    headers = {}
-
-    # Request JSON format if specified
-    if format_type == "json":
-        headers["Accept"] = "application/vnd.olrapi.note+json"
-
-    # Read note via API
-    success, data, error = client.get(endpoint, headers=headers)
+    # Read note via API with filesystem fallback
+    # Note: Filesystem fallback always returns markdown format
+    success, data, error = client.get_with_fallback(path)
 
     if success:
         if format_type == "json":
-            # Pretty-print JSON
+            # If API succeeded, data might be JSON already
             if isinstance(data, dict):
                 print(json.dumps(data, indent=2))
             else:
-                # Server returned non-JSON, output as-is
-                print(data)
+                # Filesystem fallback returns markdown, wrap in JSON-like structure
+                print(json.dumps({"content": data}, indent=2))
         else:
             # Output markdown content
             if isinstance(data, dict):

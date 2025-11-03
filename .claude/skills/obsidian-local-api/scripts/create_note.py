@@ -115,13 +115,8 @@ def create_note(path: str, content: str = "", frontmatter: dict = None) -> bool:
     # Build note content
     note_content = build_note_content(content, frontmatter)
 
-    # Create note via API
-    endpoint = f"/vault/{path}"
-    success, data, error = client.put(
-        endpoint,
-        data=note_content,
-        headers={"Content-Type": "text/markdown"}
-    )
+    # Create note via API with filesystem fallback
+    success, data, error = client.put_with_fallback(path, note_content)
 
     if success:
         print(f"✅ Note created: {path}")

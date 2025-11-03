@@ -311,6 +311,184 @@ class ObsidianClient:
         else:
             return False, error or "Connection failed"
 
+    def _get_vault_path(self) -> Optional[str]:
+        """
+        Get vault path from config, prompting if not set.
+
+        Returns:
+            Vault path or None if user declines
+        """
+        # Check if already loaded
+        vault_path = self._load_config_value("vault_path")
+
+        if vault_path:
+            return vault_path
+
+        # Vault path not configured, prompt user
+        print("\n" + "=" * 60)
+        print("⚠️  Filesystem Fallback Required")
+        print("=" * 60)
+        print("The Obsidian API operation failed or timed out.")
+        print("To continue, please provide your Obsidian vault path.")
+        print("This enables direct file access as a fallback.")
+        print()
+        print("You can find your vault path in Obsidian:")
+        print("  Settings → About → Vault folder path")
+        print()
+
+        vault_input = input("Enter vault path (or press Enter to cancel): ").strip()
+
+        if not vault_input:
+            return None
+
+        vault_path = Path(vault_input).expanduser()
+
+        # Validate path
+        if not vault_path.exists():
+            print(f"❌ Path does not exist: {vault_path}", file=sys.stderr)
+            return None
+
+        if not vault_path.is_dir():
+            print(f"❌ Path is not a directory: {vault_path}", file=sys.stderr)
+            return None
+
+        # Save to config for future use
+        print(f"✅ Vault path validated: {vault_path}")
+        print("Saving to configuration...")
+
+        # Load full config
+        script_dir = Path(__file__).parent
+        sys.path.insert(0, str(script_dir))
+        from config_helper import load_config, save_config
+        config = load_config()
+        config['vault_path'] = str(vault_path)
+
+        if save_config(config):
+            print("✅ Configuration saved. Future operations will use filesystem fallback automatically.")
+            return str(vault_path)
+        else:
+            print("⚠️  Could not save configuration, but continuing with this session.")
+            return str(vault_path)
+
+    def _try_filesystem_fallback(self, operation: str, note_path: str, **kwargs) -> Tuple[bool, Any, Optional[str]]:
+        """
+        Attempt operation via filesystem fallback.
+
+        Args:
+            operation: Operation type ('read', 'write', 'append')
+            note_path: Note path relative to vault
+            **kwargs: Operation-specific arguments
+
+        Returns:
+            Tuple of (success, data, error_message)
+        """
+        vault_path = self._get_vault_path()
+
+        if not vault_path:
+            return False, None, "Filesystem fallback requires vault path (operation cancelled by user)"
+
+        try:
+            from filesystem_ops import FilesystemOperations
+            fs = FilesystemOperations(vault_path)
+
+            if operation == 'read':
+                return fs.read_note(note_path)
+            elif operation == 'write':
+                content = kwargs.get('content', '')
+                return fs.write_note(note_path, content)
+            elif operation == 'append':
+                content = kwargs.get('content', '')
+                heading = kwargs.get('heading')
+                return fs.append_note(note_path, content, heading)
+            else:
+                return False, None, f"Unknown operation: {operation}"
+
+        except Exception as e:
+            return False, None, f"Filesystem fallback failed: {str(e)}"
+
+    def get_with_fallback(self, note_path: str) -> Tuple[bool, Any, Optional[str]]:
+        """
+        GET request with filesystem fallback.
+
+        Args:
+            note_path: Note path for reading (e.g., "Daily/note.md")
+
+        Returns:
+            Tuple of (success, data, error_message)
+        """
+        # Try API first
+        endpoint = f"/vault/{note_path}"
+        success, data, error = self.get(endpoint)
+
+        if success:
+            return True, data, None
+
+        # API failed, log and try filesystem
+        print(f"ℹ️  API read failed ({error}), trying filesystem fallback...")
+        return self._try_filesystem_fallback('read', note_path)
+
+    def put_with_fallback(self, note_path: str, content: str) -> Tuple[bool, Any, Optional[str]]:
+        """
+        PUT request with filesystem fallback.
+
+        Args:
+            note_path: Note path for writing
+            content: Note content
+
+        Returns:
+            Tuple of (success, data, error_message)
+        """
+        # Try API first
+        endpoint = f"/vault/{note_path}"
+        success, data, error = self.put(
+            endpoint,
+            data=content,
+            headers={"Content-Type": "text/markdown"}
+        )
+
+        if success:
+            return True, data, None
+
+        # API failed, log and try filesystem
+        print(f"ℹ️  API write failed ({error}), trying filesystem fallback...")
+        return self._try_filesystem_fallback('write', note_path, content=content)
+
+    def append_with_fallback(self, note_path: str, content: str, heading: Optional[str] = None) -> Tuple[bool, Any, Optional[str]]:
+        """
+        Append operation with filesystem fallback.
+
+        Args:
+            note_path: Note path for appending
+            content: Content to append
+            heading: Optional heading to insert after
+
+        Returns:
+            Tuple of (success, data, error_message)
+        """
+        # Try API first
+        endpoint = f"/vault/{note_path}"
+
+        if heading:
+            # Use PATCH for targeted insertion
+            success, data, error = self.patch(
+                endpoint,
+                json_data={"content": content, "heading": heading}
+            )
+        else:
+            # Use POST for simple append
+            success, data, error = self.post(
+                endpoint,
+                data=content,
+                headers={"Content-Type": "text/markdown"}
+            )
+
+        if success:
+            return True, data, None
+
+        # API failed, log and try filesystem
+        print(f"ℹ️  API append failed ({error}), trying filesystem fallback...")
+        return self._try_filesystem_fallback('append', note_path, content=content, heading=heading)
+
 
 def get_client() -> ObsidianClient:
     """

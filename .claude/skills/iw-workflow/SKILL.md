@@ -200,6 +200,47 @@ Creates PRs with appropriate templates and summaries:
 **Integration:**
 The iw-executor can automatically create PRs when implementation completes.
 
+## Research with Obsidian Integration
+
+For personal research stored in Obsidian vault:
+
+**Workflow:**
+
+1. **Start research with workspace selection:**
+   ```
+   /iw-research-plan
+   ```
+   - Skill auto-detects Obsidian vault
+   - Prompts: ".docs/research", "Obsidian Vault", or "Custom path"
+   - Choose Obsidian vault for personal research
+
+2. **Research execution in vault:**
+   ```
+   /iw-research-execute
+   ```
+   - Files created in vault root
+   - Visible in Obsidian during research
+   - Use Obsidian features (links, tags, graph view)
+   - Add findings and sources as usual
+
+3. **Final report and cleanup:**
+   - Report synthesis completes
+   - Prompt for final location (e.g., `Research/topic-name.md`)
+   - Report moved to final location
+   - Intermediate files auto-cleaned
+   - Only final report remains
+
+**Benefits:**
+- Live preview while researching
+- Obsidian features available during work
+- Clean final vault (no clutter)
+- Organized knowledge base
+
+**Requirements:**
+- Obsidian with Local REST API plugin
+- `obsidian-local-api` skill configured
+- API key set in config
+
 ## Learning Capture Process
 
 Capture learnings in the right place:
