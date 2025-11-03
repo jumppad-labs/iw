@@ -87,7 +87,7 @@ Invoke this skill with action: list, location: user
 
 The installer manages these workflow components:
 
-### Skills (10 total)
+### Skills (13 total)
 1. **iw-planner** - Create detailed implementation plans
 2. **iw-executor** - Execute implementation plans
 3. **iw-workflow** - Workflow guidance and documentation
@@ -96,15 +96,20 @@ The installer manages these workflow components:
 6. **iw-github-issue-reader** - Load GitHub issue context
 7. **iw-github-pr-creator** - Create GitHub pull requests
 8. **iw-git-workflow** - Manage git operations
-9. **go-dev-guidelines** - Go development patterns
-10. **skill-creator** - Guide for creating skills
-11. **iw-install** - This installer skill (self)
+9. **iw-research-planner** - Define research scope and create plans
+10. **iw-research-executor** - Gather information and generate reports
+11. **iw-research-synthesizer** - Generate reports (auto-invoked by executor)
+12. **go-dev-guidelines** - Go development patterns
+13. **skill-creator** - Guide for creating skills
+14. **iw-install** - This installer skill (self)
 
-### Slash Commands (4 total)
+### Slash Commands (6 total)
 1. **/iw-plan** - Create implementation plan
 2. **/iw-implement** - Execute plan
 3. **/iw-help** - Show workflow guidance
 4. **/iw-install** - Manage installation
+5. **/iw-research-plan** - Create research plan
+6. **/iw-research-execute** - Gather information and generate report
 
 ### Hooks (2 total)
 1. **load_workflow.sh** - Session start hook
