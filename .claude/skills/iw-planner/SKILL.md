@@ -112,8 +112,57 @@ Start by determining planning mode and what information is available:
 0. **Detect Planning Mode:**
    - Parse command arguments for `--fast` or `--detailed` flags
    - If `--fast` → Execute Fast Planning Workflow (see below)
-   - If `--detailed` or no flag → Execute Detailed Planning Workflow (existing)
-   - Default behavior: Detailed mode (maintain backward compatibility)
+   - If `--detailed` → Execute Detailed Planning Workflow (existing)
+   - If no flag provided → Execute Intelligent Mode Selection (see below)
+
+### Intelligent Mode Selection (when no --fast or --detailed flag provided)
+
+When the user provides no explicit mode flag, intelligently assess task complexity:
+
+**Step 1: Quick Complexity Assessment**
+
+Analyze the task description/issue for these indicators:
+
+**Simple Task Indicators** (→ auto-select fast mode):
+- Keywords: "change", "fix", "update", "add" (with single component)
+- Scope: CSS/styling, config files, typo fixes, simple bug fixes
+- File count: 1-3 files mentioned or implied
+- Clear, well-defined requirements with obvious solution
+- Estimated effort: < 2 hours
+
+**Complex Task Indicators** (→ prompt for detailed mode):
+- Keywords: "implement", "refactor", "system", "architecture", "integrate"
+- Scope: Multi-phase features, architectural changes, new subsystems
+- File count: 4+ files or multiple components mentioned
+- Unclear requirements or multiple design options
+- Estimated effort: > 2 hours or multi-phase work
+
+**Step 2: Execute Decision**
+
+**If task appears simple:**
+- Proceed directly to Fast Planning Workflow
+- No user prompt needed (minimize prompts per issue requirements)
+- After fast plan, offer upgrade to detailed if needed
+
+**If task appears complex:**
+- Inform user:
+  ```
+  This task appears complex (multi-phase/architectural changes).
+
+  I recommend running a detailed plan for comprehensive research and code examples.
+
+  Would you like me to:
+  1. Run detailed plan (recommended)
+  2. Run fast plan anyway (you can upgrade later)
+  ```
+- Wait for user choice
+- Execute chosen workflow
+
+**If uncertain about complexity:**
+- Default to fast mode (per issue requirements: minimize prompts)
+- User can upgrade to detailed if needed after reviewing fast plan
+
+**Note:** Explicit `--fast` or `--detailed` flags always override this assessment.
 
 ### Fast Planning Workflow
 
