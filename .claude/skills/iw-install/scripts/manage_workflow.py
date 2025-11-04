@@ -3,7 +3,7 @@
 Implementation Workflow Installer Script
 
 Manages installation, updates, and removal of the Implementation Workflow
-for Claude Code. Fetches files directly from GitHub.
+for Claude Code. Uses git clone to fetch files from GitHub.
 
 Usage:
     python3 manage_workflow.py install --location project
@@ -21,15 +21,12 @@ import subprocess
 import sys
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
-from urllib.request import urlopen, Request
-from urllib.error import URLError, HTTPError
 
 # GitHub repository configuration
 GITHUB_USER = "jumppad-labs"
 GITHUB_REPO = "iw"
 GITHUB_BRANCH = "main"
-GITHUB_API_BASE = f"https://api.github.com/repos/{GITHUB_USER}/{GITHUB_REPO}"
-GITHUB_RAW_BASE = f"https://raw.githubusercontent.com/{GITHUB_USER}/{GITHUB_REPO}/{GITHUB_BRANCH}"
+# Note: No longer need GITHUB_API_BASE or GITHUB_RAW_BASE (git clone instead)
 
 # Workflow components to install
 SKILLS = [
@@ -83,116 +80,142 @@ class WorkflowInstaller:
         else:
             return Path.cwd() / ".claude"
 
-    def _fetch_url(self, url: str, retry: int = 3) -> Optional[bytes]:
+    def _clone_repository(self) -> Optional[Path]:
         """
-        Fetch content from URL with retry logic.
+        Clone the workflow repository to a temporary directory.
 
-        Args:
-            url: URL to fetch
-            retry: Number of retries
+        Uses git clone with --depth 1 for a shallow clone (faster, less disk space).
 
         Returns:
-            Content bytes or None on failure
+            Path to temporary clone directory, or None on failure
         """
-        for attempt in range(retry):
-            try:
-                req = Request(url)
-                req.add_header("User-Agent", "implementation-workflow-installer")
-                with urlopen(req, timeout=10) as response:
-                    return response.read()
-            except (URLError, HTTPError) as e:
-                if attempt == retry - 1:
-                    print(f"  Error fetching {url}: {e}")
-                    return None
-                print(f"  Retry {attempt + 1}/{retry} for {url}...")
-        return None
+        import tempfile
+        import shutil
 
-    def _fetch_json(self, url: str) -> Optional[Dict]:
-        """Fetch JSON from URL."""
-        content = self._fetch_url(url)
-        if content:
-            try:
-                return json.loads(content.decode("utf-8"))
-            except json.JSONDecodeError as e:
-                print(f"  Error decoding JSON from {url}: {e}")
-        return None
+        # Create temporary directory
+        temp_dir = Path(tempfile.mkdtemp(prefix="iw-install-"))
+        repo_url = f"https://github.com/{GITHUB_USER}/{GITHUB_REPO}.git"
 
-    def _list_directory_contents(self, path: str) -> List[Dict]:
+        try:
+            # Perform shallow clone (only latest commit)
+            result = subprocess.run(
+                ["git", "clone", "--depth", "1", "--branch", GITHUB_BRANCH, repo_url, str(temp_dir)],
+                check=True,
+                capture_output=True,
+                text=True,
+                timeout=60  # 60 second timeout for clone operation
+            )
+
+            # Verify .claude directory exists in clone
+            claude_dir = temp_dir / ".claude"
+            if not claude_dir.exists():
+                print(f"  Error: .claude directory not found in cloned repository")
+                shutil.rmtree(temp_dir, ignore_errors=True)
+                return None
+
+            return temp_dir
+
+        except subprocess.TimeoutExpired:
+            print(f"  Error: Git clone timed out after 60 seconds")
+            shutil.rmtree(temp_dir, ignore_errors=True)
+            return None
+
+        except subprocess.CalledProcessError as e:
+            print(f"  Error: Git clone failed: {e.stderr}")
+            shutil.rmtree(temp_dir, ignore_errors=True)
+            return None
+
+        except FileNotFoundError:
+            print(f"  Error: git command not found. Please install git:")
+            print(f"    Ubuntu/Debian: sudo apt-get install git")
+            print(f"    macOS: brew install git")
+            print(f"    Windows: https://git-scm.com/download/win")
+            shutil.rmtree(temp_dir, ignore_errors=True)
+            return None
+
+        except Exception as e:
+            print(f"  Error: Unexpected error during clone: {e}")
+            shutil.rmtree(temp_dir, ignore_errors=True)
+            return None
+
+    def _copy_files_from_clone(self, clone_dir: Path) -> bool:
         """
-        List contents of a directory in the GitHub repo.
+        Copy .claude directory contents from cloned repo to target location.
 
         Args:
-            path: Path in repo (e.g., ".claude/skills/iw-planner")
+            clone_dir: Path to temporary clone directory
 
         Returns:
-            List of file/directory info dicts
+            True if successful, False otherwise
         """
-        url = f"{GITHUB_API_BASE}/contents/{path}?ref={GITHUB_BRANCH}"
-        result = self._fetch_json(url)
-        if result is None:
-            return []
-        if isinstance(result, list):
-            return result
-        return [result] if isinstance(result, dict) else []
+        import shutil
 
-    def _download_file(self, repo_path: str, local_path: Path) -> bool:
-        """
-        Download a file from GitHub to local path.
+        source_claude = clone_dir / ".claude"
 
-        Args:
-            repo_path: Path in GitHub repo
-            local_path: Local destination path
-
-        Returns:
-            True if successful
-        """
-        url = f"{GITHUB_RAW_BASE}/{repo_path}"
-        content = self._fetch_url(url)
-
-        if content is None:
-            self.failed_files.append((repo_path, "Failed to download"))
+        if not source_claude.exists():
+            print("  Error: .claude directory not found in clone")
             return False
 
         try:
-            local_path.parent.mkdir(parents=True, exist_ok=True)
-            local_path.write_bytes(content)
-            self.installed_files.append(local_path)
+            # Create target directories if they don't exist
+            self.target_dir.mkdir(parents=True, exist_ok=True)
+
+            # Copy each subdirectory (skills, commands, hooks)
+            for subdir_name in ["skills", "commands", "hooks"]:
+                source_subdir = source_claude / subdir_name
+
+                if not source_subdir.exists():
+                    print(f"  Warning: {subdir_name}/ not found in clone, skipping")
+                    continue
+
+                target_subdir = self.target_dir / subdir_name
+
+                # Copy entire subdirectory
+                # dirs_exist_ok=True allows overwriting existing files
+                shutil.copytree(source_subdir, target_subdir, dirs_exist_ok=True)
+
+                # Count files copied for reporting
+                file_count = sum(1 for _ in target_subdir.rglob('*') if _.is_file())
+                self.installed_files.extend(target_subdir.rglob('*'))
+                print(f"  ✓ Copied {file_count} files to {subdir_name}/")
+
+            # Make hook scripts executable
+            hooks_dir = self.target_dir / "hooks"
+            if hooks_dir.exists():
+                for hook_file in hooks_dir.glob("*.sh"):
+                    self._make_executable(hook_file)
+
             return True
-        except IOError as e:
-            self.failed_files.append((repo_path, f"Failed to write: {e}"))
+
+        except PermissionError as e:
+            print(f"  Error: Permission denied when copying files: {e}")
+            print(f"  Check that you have write permissions to {self.target_dir}")
             return False
 
-    def _download_directory(self, repo_path: str, local_dir: Path, recursive: bool = True) -> int:
+        except OSError as e:
+            print(f"  Error: Failed to copy files: {e}")
+            return False
+
+        except Exception as e:
+            print(f"  Error: Unexpected error during copy: {e}")
+            return False
+
+    def _cleanup_clone(self, clone_dir: Path):
         """
-        Download entire directory from GitHub.
+        Remove temporary clone directory.
 
         Args:
-            repo_path: Directory path in GitHub repo
-            local_dir: Local destination directory
-            recursive: Whether to recurse into subdirectories
-
-        Returns:
-            Number of files downloaded
+            clone_dir: Path to temporary clone to remove
         """
-        contents = self._list_directory_contents(repo_path)
-        if not contents:
-            return 0
+        import shutil
 
-        count = 0
-        for item in contents:
-            name = item.get("name", "")
-            item_type = item.get("type", "")
-            item_path = item.get("path", "")
-
-            if item_type == "file":
-                local_file = local_dir / name
-                if self._download_file(item_path, local_file):
-                    count += 1
-            elif item_type == "dir" and recursive:
-                subdir = local_dir / name
-                count += self._download_directory(item_path, subdir, recursive=True)
-
-        return count
+        try:
+            if clone_dir and clone_dir.exists():
+                shutil.rmtree(clone_dir)
+        except Exception as e:
+            # Non-fatal error, just warn
+            print(f"  Warning: Failed to clean up temporary directory {clone_dir}: {e}")
+            print(f"  You may want to manually remove it later")
 
     def _make_executable(self, file_path: Path):
         """Make a file executable."""
@@ -206,77 +229,58 @@ class WorkflowInstaller:
         """
         Install the Implementation Workflow.
 
+        Clones the repository and copies files to target location.
+
         Returns:
             True if successful
         """
         print(f"Installing Implementation Workflow to: {self.target_dir}")
         print()
 
-        # Create base directories
-        print("Creating directory structure...")
-        (self.target_dir / "skills").mkdir(parents=True, exist_ok=True)
-        (self.target_dir / "commands").mkdir(parents=True, exist_ok=True)
-        (self.target_dir / "hooks").mkdir(parents=True, exist_ok=True)
-        print("  ✓ Directory structure created")
+        # Step 1: Clone repository
+        print("Cloning workflow repository...")
+        clone_dir = self._clone_repository()
+
+        if clone_dir is None:
+            print()
+            print("=" * 50)
+            print("Installation Failed!")
+            print("=" * 50)
+            print()
+            print("Could not clone repository. Check:")
+            print("  - Git is installed: git --version")
+            print("  - Network connection is working")
+            print("  - GitHub is accessible: ping github.com")
+            print()
+            return False
+
+        print(f"  ✓ Repository cloned to temporary directory")
         print()
 
-        # Install skills
-        print(f"Installing {len(SKILLS)} skills...")
-        for skill in SKILLS:
-            print(f"  Installing {skill}...")
-            skill_dir = self.target_dir / "skills" / skill
-            skill_dir.mkdir(parents=True, exist_ok=True)
+        # Step 2: Copy files from clone to target
+        print(f"Copying workflow files to {self.target_dir}...")
+        success = self._copy_files_from_clone(clone_dir)
 
-            # Download SKILL.md
-            skill_md_path = f".claude/skills/{skill}/SKILL.md"
-            if not self._download_file(skill_md_path, skill_dir / "SKILL.md"):
-                print(f"    Warning: Failed to download {skill}/SKILL.md")
-
-            # Download scripts directory if it exists
-            scripts_path = f".claude/skills/{skill}/scripts"
-            scripts_dir = skill_dir / "scripts"
-            scripts_count = self._download_directory(scripts_path, scripts_dir)
-            if scripts_count > 0:
-                print(f"    ✓ {scripts_count} script(s) installed")
-
-            # Download assets directory if it exists
-            assets_path = f".claude/skills/{skill}/assets"
-            assets_dir = skill_dir / "assets"
-            assets_count = self._download_directory(assets_path, assets_dir)
-            if assets_count > 0:
-                print(f"    ✓ {assets_count} asset(s) installed")
-
-            # Download references directory if it exists (for go-dev-guidelines)
-            refs_path = f".claude/skills/{skill}/references"
-            refs_dir = skill_dir / "references"
-            refs_count = self._download_directory(refs_path, refs_dir)
-            if refs_count > 0:
-                print(f"    ✓ {refs_count} reference(s) installed")
-
-        print(f"  ✓ All skills installed")
+        # Step 3: Cleanup temporary clone
         print()
+        print("Cleaning up temporary files...")
+        self._cleanup_clone(clone_dir)
+        print("  ✓ Temporary files removed")
 
-        # Install commands
-        print(f"Installing {len(COMMANDS)} commands...")
-        commands_dir = self.target_dir / "commands"
-        for command in COMMANDS:
-            command_path = f".claude/commands/{command}"
-            if self._download_file(command_path, commands_dir / command):
-                print(f"  ✓ {command}")
+        if not success:
+            print()
+            print("=" * 50)
+            print("Installation Failed!")
+            print("=" * 50)
+            print()
+            print("Failed to copy files. Check:")
+            print(f"  - Write permissions: ls -ld {self.target_dir}")
+            print(f"  - Available disk space: df -h {self.target_dir}")
+            print()
+            return False
+
+        # Step 4: Display success summary
         print()
-
-        # Install hooks
-        print(f"Installing {len(HOOKS)} hooks...")
-        hooks_dir = self.target_dir / "hooks"
-        for hook in HOOKS:
-            hook_path = f".claude/hooks/{hook}"
-            local_hook = hooks_dir / hook
-            if self._download_file(hook_path, local_hook):
-                self._make_executable(local_hook)
-                print(f"  ✓ {hook}")
-        print()
-
-        # Summary
         print("=" * 50)
         print("Installation Complete!")
         print("=" * 50)
@@ -284,13 +288,6 @@ class WorkflowInstaller:
         print(f"Location: {self.target_dir}")
         print(f"Installed: {len(SKILLS)} skills, {len(COMMANDS)} commands, {len(HOOKS)} hooks")
         print(f"Files: {len(self.installed_files)}")
-
-        if self.failed_files:
-            print()
-            print(f"Warning: {len(self.failed_files)} file(s) failed to download:")
-            for path, error in self.failed_files:
-                print(f"  - {path}: {error}")
-
         print()
         print("Next steps:")
         print("  1. Restart Claude Code or start new session")
@@ -298,7 +295,7 @@ class WorkflowInstaller:
         print("  3. Use /iw-plan to create your first plan")
         print()
 
-        return len(self.failed_files) == 0
+        return True
 
     def update(self) -> bool:
         """

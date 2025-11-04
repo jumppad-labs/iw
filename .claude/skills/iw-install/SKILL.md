@@ -129,7 +129,19 @@ When you invoke this skill with action `install`:
    - Project: `$CWD/.claude/`
    - User: `~/.claude/`
 
-2. **Create Directory Structure**
+2. **Clone Repository**
+   - Uses `git clone --depth 1` to shallow clone the repository
+   - Clones to temporary directory
+   - Fast and avoids GitHub API rate limiting
+
+3. **Copy Files**
+   - Copies entire `.claude/` directory from clone to target
+   - Preserves directory structure
+   - Makes hook scripts executable
+
+4. **Cleanup**
+   - Removes temporary clone directory
+   - Installation complete
    ```
    .claude/
    ├── skills/
@@ -332,12 +344,11 @@ The skill handles common errors gracefully:
 ## Requirements
 
 - **Python 3.7+** - For running the management script
-- **curl** - For downloading files from GitHub
-- **Internet connection** - To fetch files from GitHub
+- **git** - For cloning the workflow repository
+- **Internet connection** - To clone from GitHub
 
 Optional:
-- **git** - For some workflow features
-- **gh CLI** - For GitHub integration features
+- **gh CLI** - For GitHub integration features (issue reader, PR creator)
 
 ## Workflow Integration
 
@@ -357,24 +368,33 @@ The installer fetches all files from:
 
 ## Important Notes
 
-1. **Force Overwrite**: Installation always overwrites existing workflow files (force=true by default)
-2. **Preserves Custom Content**: Your custom skills, commands, and settings are never removed
-3. **Network Required**: All operations fetch from GitHub, no local caching
-4. **Self-Updating**: The iw-install skill can update itself
-5. **No Config Changes**: Never modifies settings.json or other configuration
+1. **Git Required**: Installation requires git to be installed and available in PATH
+2. **Force Overwrite**: Installation always overwrites existing workflow files (force=true by default)
+3. **Preserves Custom Content**: Your custom skills, commands, and settings are never removed
+4. **Network Required**: Clone operation requires internet access to GitHub
+5. **No Rate Limiting**: Git clone eliminates GitHub API rate limiting issues
+6. **Self-Updating**: The iw-install skill can update itself
+7. **No Config Changes**: Never modifies settings.json or other configuration
 
 ## Troubleshooting
 
 ### Installation Fails
-1. Check internet connection
-2. Verify Python 3.7+ installed: `python3 --version`
-3. Check permissions for target directory
-4. Try with --force flag
+1. **Check git is installed**: `git --version`
+   - Ubuntu/Debian: `sudo apt-get install git`
+   - macOS: `brew install git`
+   - Windows: https://git-scm.com/download/win
+2. **Check internet connection**: `ping github.com`
+3. **Verify Python 3.7+ installed**: `python3 --version`
+4. **Check permissions for target directory**: `ls -ld .claude`
+5. **Check disk space**: `df -h .`
 
-### Files Not Downloading
-1. Verify GitHub URL is accessible
-2. Check for network proxy issues
-3. Try manual download to test connectivity
+### Clone Fails
+1. **Verify GitHub is accessible**: `git ls-remote https://github.com/jumppad-labs/iw.git`
+2. **Check for network proxy**: `echo $https_proxy`
+3. **Try manual clone**: `git clone https://github.com/jumppad-labs/iw.git /tmp/test-clone`
+
+### Rate Limiting (No Longer an Issue)
+The new git clone approach eliminates rate limiting issues. You can run installations as many times as needed.
 
 ### Skills Not Loading After Install
 1. Restart Claude Code
