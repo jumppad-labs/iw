@@ -3,7 +3,7 @@
 Create phase commit for completed implementation phase.
 
 Creates a git commit for a completed phase with proper message format
-including plan reference and co-authored-by attribution.
+including plan reference and issue number.
 
 Usage:
     python3 create_phase_commit.py --phase <number> --plan-path <plan-directory> [--worktree <path>]
