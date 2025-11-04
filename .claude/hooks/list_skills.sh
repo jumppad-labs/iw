@@ -1,5 +1,11 @@
 #!/bin/bash
 
+# DEPRECATED: This bash hook is deprecated in favor of list_skills.py
+# For Windows compatibility, use the Python version: .claude/hooks/list_skills.py
+# This script remains for backward compatibility with existing Unix workflows.
+#
+# See list_skills.py for the cross-platform Python version.
+
 # Hook script to list available skills for Claude Code
 # This script is executed at session start to remind Claude of available skills
 

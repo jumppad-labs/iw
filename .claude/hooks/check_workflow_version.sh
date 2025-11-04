@@ -1,4 +1,11 @@
 #!/bin/bash
+
+# DEPRECATED: This bash hook is deprecated in favor of check_workflow_version.py
+# For Windows compatibility, use the Python version: .claude/hooks/check_workflow_version.py
+# This script remains for backward compatibility with existing Unix workflows.
+#
+# See check_workflow_version.py for the cross-platform Python version.
+
 # Startup hook to check workflow version
 # Runs automatically when Claude Code starts
 
