@@ -321,7 +321,7 @@ For each phase in the plan:
       - DO NOT wait for user to explicitly request the commit
       - DO NOT skip this step even if changes seem small
       - Commit happens IMMEDIATELY after confirmation, before starting next phase
-      - This ensures each phase is atomically committed with proper attribution
+      - This ensures each phase is atomically committed with phase and issue references
 
       **Script behavior**:
       - Stages all changes in worktree with `git add -A`
@@ -622,7 +622,7 @@ python3 .claude/skills/iw-git-workflow/scripts/create_phase_commit.py \
 
 1. **Task updates** ensure progress survives context compaction and crashes
 2. **Context updates** preserve institutional knowledge for future work
-3. **Phase commits** create atomic, reviewable units of work with proper attribution
+3. **Phase commits** create atomic, reviewable units of work with phase and issue references
 
 **If you forget these automations, the implementation will not follow the workflow specification.**
 
