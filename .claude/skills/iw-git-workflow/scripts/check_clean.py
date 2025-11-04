@@ -4,7 +4,7 @@ Check if git working directory is clean.
 
 Verifies that there are no uncommitted changes, staged files, or untracked files
 (except those in .gitignore). Used before starting implementation to ensure safe
-state for creating worktrees.
+state for creating branches.
 
 Usage:
     python3 check_clean.py [--directory <path>]
@@ -34,13 +34,15 @@ def run_git_command(cmd: list[str], cwd: Path) -> tuple[int, str, str]:
 
 def check_git_status(directory: Path) -> dict:
     """
-    Check git status for uncommitted changes.
+    Check git status for uncommitted changes and branch information.
 
     Returns dict with:
         - clean: bool
         - modified: list of modified files
         - staged: list of staged files
         - untracked: list of untracked files
+        - current_branch: str (current branch name)
+        - is_implementation_branch: bool (true if on issue-* or feature-* branch)
     """
     # Check for modified files
     returncode, stdout, _ = run_git_command(
@@ -63,13 +65,30 @@ def check_git_status(directory: Path) -> dict:
     )
     untracked = [f.strip() for f in stdout.split("\n") if f.strip()]
 
+    # Get current branch name
+    returncode, branch_stdout, _ = run_git_command(
+        ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+        directory
+    )
+    current_branch = branch_stdout.strip() if returncode == 0 else None
+
+    # Detect if on implementation branch (issue-* or feature-*)
+    is_implementation_branch = False
+    if current_branch:
+        is_implementation_branch = (
+            current_branch.startswith("issue-") or
+            current_branch.startswith("feature-")
+        )
+
     is_clean = len(modified) == 0 and len(staged) == 0 and len(untracked) == 0
 
     return {
         "clean": is_clean,
         "modified": modified,
         "staged": staged,
-        "untracked": untracked
+        "untracked": untracked,
+        "current_branch": current_branch,
+        "is_implementation_branch": is_implementation_branch
     }
 
 
