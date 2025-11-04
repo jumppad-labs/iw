@@ -41,6 +41,7 @@ SKILLS = [
     "go-dev-guidelines",
     "skill-creator",
     "iw-install",  # Self-reference
+    "iw-version-check",
 ]
 
 COMMANDS = [
@@ -53,6 +54,7 @@ COMMANDS = [
 HOOKS = [
     "load_workflow.sh",
     "list_skills.sh",
+    "check_workflow_version.sh",
 ]
 
 
@@ -184,6 +186,17 @@ class WorkflowInstaller:
             if hooks_dir.exists():
                 for hook_file in hooks_dir.glob("*.sh"):
                     self._make_executable(hook_file)
+
+            # Copy VERSION file to track installed version
+            version_source = clone_dir / "VERSION"
+            if version_source.exists():
+                version_target = self.target_dir / "skills" / "iw-install" / "VERSION"
+                version_target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(version_source, version_target)
+                version_str = version_source.read_text().strip()
+                print(f"  ✓ Installed version: {version_str}")
+            else:
+                print("  Warning: VERSION file not found in repository")
 
             return True
 
