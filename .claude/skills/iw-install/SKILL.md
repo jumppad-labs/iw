@@ -111,9 +111,13 @@ The installer manages these workflow components:
 5. **/iw-research-plan** - Create research plan
 6. **/iw-research-execute** - Gather information and generate report
 
-### Hooks (2 total)
-1. **load_workflow.sh** - Session start hook
-2. **list_skills.sh** - List skills at start
+### Hooks (6 total)
+1. **load_workflow.py** - Cross-platform session start hook
+2. **list_skills.py** - Cross-platform skills listing hook
+3. **check_workflow_version.py** - Cross-platform version check hook
+4. **load_workflow.sh** - Deprecated bash version (backward compatibility)
+5. **list_skills.sh** - Deprecated bash version (backward compatibility)
+6. **check_workflow_version.sh** - Deprecated bash version (backward compatibility)
 
 ### Support Files
 - Python scripts for each skill
@@ -349,6 +353,26 @@ The skill handles common errors gracefully:
 
 Optional:
 - **gh CLI** - For GitHub integration features (issue reader, PR creator)
+
+## Windows Support
+
+The workflow is fully compatible with Windows 10/11:
+
+- ✅ Python scripts work on Windows natively
+- ✅ UTF-8 encoding configured for Unicode output
+- ✅ Cross-platform path handling with pathlib
+- ✅ Git for Windows supported
+- ✅ Works in PowerShell, Command Prompt, and Git Bash
+
+**Requirements for Windows:**
+- Python 3.7+ (from python.org or Microsoft Store)
+- Git for Windows (from git-scm.com)
+- Any terminal (PowerShell, Command Prompt, or Git Bash)
+
+**Known Issues:**
+- Older Windows terminals may not display Unicode characters (✓, ✗)
+- Scripts use ASCII fallback automatically if UTF-8 unavailable
+- Use Windows Terminal or PowerShell 7+ for best experience
 
 ## Workflow Integration
 

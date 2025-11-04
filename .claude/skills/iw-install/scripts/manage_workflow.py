@@ -13,9 +13,21 @@ Usage:
     python3 manage_workflow.py list --location project
 """
 
+# Configure UTF-8 encoding for Windows compatibility
+# Windows console defaults to cp1252 which can't display Unicode chars like ✓, ✗
+import sys
+import io
+
+if sys.platform == 'win32':
+    # Wrap stdout and stderr with UTF-8 encoding
+    # errors='replace' provides graceful fallback for unsupported chars
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
+
 import argparse
 import json
 import os
+import platform  # Add platform for OS detection
 import stat
 import subprocess
 import sys
@@ -52,9 +64,12 @@ COMMANDS = [
 ]
 
 HOOKS = [
-    "load_workflow.sh",
-    "list_skills.sh",
-    "check_workflow_version.sh",
+    "load_workflow.sh",        # Deprecated, keep for backward compatibility
+    "list_skills.sh",          # Deprecated, keep for backward compatibility
+    "check_workflow_version.sh",  # Deprecated, keep for backward compatibility
+    "load_workflow.py",        # Cross-platform Python version
+    "list_skills.py",          # Cross-platform Python version
+    "check_workflow_version.py",  # Cross-platform Python version
 ]
 
 
@@ -181,9 +196,10 @@ class WorkflowInstaller:
                 self.installed_files.extend(target_subdir.rglob('*'))
                 print(f"  ✓ Copied {file_count} files to {subdir_name}/")
 
-            # Make hook scripts executable
+            # Make hook scripts executable (Unix only, for .sh files)
             hooks_dir = self.target_dir / "hooks"
             if hooks_dir.exists():
+                # Only chmod .sh files on Unix (Python scripts don't need it)
                 for hook_file in hooks_dir.glob("*.sh"):
                     self._make_executable(hook_file)
 
@@ -231,7 +247,17 @@ class WorkflowInstaller:
             print(f"  You may want to manually remove it later")
 
     def _make_executable(self, file_path: Path):
-        """Make a file executable."""
+        """
+        Make a file executable (Unix only).
+
+        On Windows, Python scripts don't need executable bit.
+        On Unix, adds execute permissions for user, group, and other.
+        """
+        # Python scripts work with 'python3 script.py' on all platforms
+        # Only set executable bit on Unix systems for convention
+        if platform.system() == 'Windows':
+            return  # No-op on Windows
+
         try:
             current = file_path.stat().st_mode
             file_path.chmod(current | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)

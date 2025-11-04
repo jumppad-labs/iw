@@ -42,40 +42,63 @@ The Implementation Workflow is a comprehensive set of Claude Code skills and com
 - **/iw-research-plan** - Create new research plan with questions and scope
 - **/iw-research-execute** - Gather information and generate comprehensive report
 
-### Hooks (2 total)
-- **load_workflow.sh** - Session start hook showing documentation structure
-- **list_skills.sh** - List available skills at session start
+### Hooks (6 total)
+- **load_workflow.py** - Cross-platform session start hook showing documentation structure
+- **list_skills.py** - Cross-platform hook to list available skills at session start
+- **check_workflow_version.py** - Cross-platform hook to check for workflow updates
+- **load_workflow.sh** - Deprecated bash version (kept for backward compatibility)
+- **list_skills.sh** - Deprecated bash version (kept for backward compatibility)
+- **check_workflow_version.sh** - Deprecated bash version (kept for backward compatibility)
 
 ### Support Files
 - Python scripts for plan management, task tracking, and GitHub integration
 - Template files for plan structure (plan, tasks, context, research)
 - Reference documentation for Go development guidelines
 
-## Quick Start (Recommended)
+## Quick Start
 
-### Option 1: Bootstrap Installation
+### Cross-Platform Installation
 
-Run this one-line command to install the workflow:
+The Implementation Workflow supports Windows, macOS, and Linux.
+
+**Recommended: Python Bootstrap (All Platforms)**
 
 ```bash
+# Download bootstrap script
+curl -sSL https://raw.githubusercontent.com/jumppad-labs/iw/main/bootstrap.py -o bootstrap.py
+
+# Run bootstrap
+python3 bootstrap.py
+```
+
+**Alternative: Bash Bootstrap (macOS/Linux Only)**
+
+```bash
+# For macOS/Linux users who prefer bash
 curl -sSL https://raw.githubusercontent.com/jumppad-labs/iw/main/bootstrap.sh | bash
 ```
 
-This will:
+The bootstrap will:
 1. Prompt you to choose project-level or user-level installation
 2. Download and set up the `iw-install` skill
 3. Provide instructions for completing installation
 
-Then in Claude Code, run:
+After bootstrap completes, restart Claude Code and run:
 ```
 /iw-install
 ```
 
-### Option 2: Manual Installation via Claude Code
+### Platform-Specific Notes
 
-1. Share this README URL with Claude Code
-2. Ask Claude to install the Implementation Workflow
-3. Claude will follow the installation steps below
+**Windows:**
+- Requires Python 3.7+ and Git for Windows
+- Use `python3 bootstrap.py` (bootstrap.sh won't work without WSL)
+- PowerShell, Command Prompt, and Git Bash all supported
+
+**macOS/Linux:**
+- Both bootstrap.py and bootstrap.sh work
+- Requires Python 3.7+ and git
+- Python version recommended for consistency
 
 ## Installation Locations
 
@@ -252,7 +275,11 @@ The typical workflow for a planned feature:
 ### Core Requirements
 - **Claude Code** (latest version)
 - **Git** (for version control operations)
-- **Python 3.7+** (for helper scripts)
+  - Git for Windows on Windows
+  - Standard git package on macOS/Linux
+- **Python 3.7+** (for helper scripts and installation)
+  - From python.org or Microsoft Store on Windows
+  - Pre-installed or via package manager on macOS/Linux
 
 ### Optional Requirements
 - **GitHub CLI (gh)** - For GitHub issue and PR operations
@@ -260,6 +287,11 @@ The typical workflow for a planned feature:
 
 ### Required for Language-Specific Skills
 - **Go 1.21+** - If using go-dev-guidelines skill
+
+### Platform Support
+- **Windows 10/11** - Fully supported (PowerShell, Command Prompt, Git Bash)
+- **macOS** - Fully supported
+- **Linux** - Fully supported
 
 ## Updating the Workflow
 
@@ -359,9 +391,23 @@ Use the `skill-creator` skill to create new custom skills.
 
 ### Hooks Not Running
 
-1. Check hooks are executable: `chmod +x .claude/hooks/*.sh`
-2. Verify hooks are in correct location
-3. Check hook configuration in settings
+1. **Unix/macOS**: Check bash hooks are executable: `chmod +x .claude/hooks/*.sh`
+2. **Windows**: Ensure Python hooks (.py files) are present in `.claude/hooks/`
+3. **All platforms**: Verify hooks are in correct location
+4. Check hook configuration in settings
+5. Restart Claude Code to reload hooks
+
+### Windows-Specific Issues
+
+**Unicode characters not displaying:**
+- Use Windows Terminal or PowerShell 7+ for better Unicode support
+- Older Command Prompt may show fallback characters
+- Scripts automatically handle encoding
+
+**Python scripts not executing:**
+- Verify Python 3.7+ is installed: `python3 --version`
+- Ensure Python is in PATH
+- Use `python3 script.py` instead of `./script.py`
 
 ## Contributing
 

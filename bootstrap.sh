@@ -1,6 +1,12 @@
 #!/bin/bash
 set -e
 
+# DEPRECATED: This bash script is deprecated in favor of bootstrap.py
+# For Windows compatibility, please use: python3 bootstrap.py
+# This script remains for backward compatibility with existing Unix workflows.
+#
+# See bootstrap.py for the cross-platform Python version.
+
 # Implementation Workflow Bootstrap Script
 # This script installs the iw-install skill which can then install the full workflow
 
