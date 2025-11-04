@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Create phase commit in worktree.
+Create phase commit for completed implementation phase.
 
 Creates a git commit for a completed phase with proper message format
 including plan reference and co-authored-by attribution.
@@ -119,7 +119,7 @@ def create_commit_message(
 
 def create_commit(worktree_path: Path, commit_message: str) -> tuple[bool, dict, str]:
     """
-    Create git commit in worktree.
+    Create git commit in the repository.
 
     Returns:
         Tuple of (success, commit_info, error_message)
@@ -171,7 +171,7 @@ def create_commit(worktree_path: Path, commit_message: str) -> tuple[bool, dict,
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Create phase commit in worktree"
+        description="Create phase commit for implementation"
     )
     parser.add_argument(
         "--phase",
