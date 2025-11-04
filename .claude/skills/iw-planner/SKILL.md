@@ -1,6 +1,6 @@
 ---
 name: iw-planner
-description: Create detailed implementation plans through an interactive process with research, code snippets, and structured deliverables. Use this skill when planning significant features, refactoring tasks, or complex implementations that require thorough analysis and structured documentation. The skill guides through context gathering, research, design decisions, and generates comprehensive plans with test strategies and success criteria.
+description: Create implementation plans through an interactive process with research, code snippets, and structured deliverables. Supports two modes - fast (minimal research, single file, ~100 lines for simple tasks) and detailed (comprehensive research, 4 files for complex tasks). Use --fast for simple changes, --detailed for significant features. The skill guides through context gathering, research, design decisions, and generates plans with test strategies and success criteria.
 ---
 
 # Implementation Planner
@@ -25,41 +25,151 @@ Task agents handle all information gathering, while the main context handles use
 
 ## Quick Start
 
-The planner automatically ensures the `.docs/` structure exists by invoking the `iw-init` skill, then creates the specific plan directory.
+The planner supports two modes: **fast** (quick plans for simple tasks) and **detailed** (comprehensive plans for complex tasks).
 
-**For GitHub issue-based plans (recommended):**
+### Fast Planning (New!)
+
+Use for simple tasks requiring minimal research:
+
 ```bash
-scripts/init_plan.py <issue-number> --type issue
+/iw-plan <issue-number> --fast
 ```
-Example: `scripts/init_plan.py 123 --type issue`
 
-**For ad-hoc plans:**
+**When to use:**
+- CSS/styling changes
+- Simple configuration updates
+- Straightforward bug fixes
+- Clear, well-defined tasks
+- Tasks you estimate at < 2 hours
+
+**Output:**
+- Single combined markdown file (~50-100 lines)
+- Minimal research (4 agents: issue + learnings + guidelines + quick file scan)
+- Completes in ~30-40% of detailed planning time
+- Includes upgrade prompt if more detail needed
+
+**Example:**
 ```bash
-scripts/init_plan.py <plan-name> --type adhoc
+/iw-plan 42 --fast  # Create fast plan for issue #42
+# Review plan, add comments/questions
+/iw-plan 42 --detailed  # Upgrade to detailed plan (preserves your edits)
 ```
-Example: `scripts/init_plan.py refactor-auth --type adhoc`
 
-This creates a complete plan directory with all template files ready for customization.
+### Detailed Planning (Default)
 
-**Note:** The `iw-init` skill is invoked automatically during Step 4 to ensure base documentation structure exists.
+Use for complex tasks requiring comprehensive research:
+
+```bash
+/iw-plan <issue-number> --detailed
+# or simply:
+/iw-plan <issue-number>  # --detailed is default
+```
+
+**When to use:**
+- Multi-phase features
+- Architectural changes
+- Complex integrations
+- Tasks requiring extensive research
+- Tasks with unclear requirements
+
+**Output:**
+- Four separate files: plan.md, research.md, context.md, tasks.md
+- Comprehensive research (14-17 agents for thorough codebase analysis)
+- Detailed code examples and test strategies
+- If fast plan exists, reads it first and preserves user edits
+
+### Upgrade Path
+
+1. **Start fast:** `/iw-plan 123 --fast`
+2. **Review and edit:** Add comments, questions, concerns to fast plan
+3. **Upgrade:** `/iw-plan 123 --detailed`
+4. **Result:** Detailed plan incorporates your fast plan edits
+
+Your comments and questions from the fast plan will appear in the detailed plan's research.md file and inform the comprehensive research.
+
+### Direct Initialization (Advanced)
+
+For script-based workflows, use init_plan.py directly:
+
+**Fast plan:**
+```bash
+scripts/init_plan.py <issue-number> --type issue --mode fast
+```
+
+**Detailed plan:**
+```bash
+scripts/init_plan.py <issue-number> --type issue --mode detailed
+```
+
+**Note:** The `iw-init` skill is invoked automatically to ensure base documentation structure exists.
 
 ## Workflow Decision Tree
 
 **🚨 CRITICAL RULE: When the user corrects you, IMMEDIATELY document the correction in research.md and `.docs/knowledge/learnings/` before doing anything else. See "Verify User Corrections" section for details. 🚨**
 
-Start by determining what information is available and launching agents immediately:
+Start by determining planning mode and what information is available:
 
-1. **Check for GitHub Issue:**
+0. **Detect Planning Mode:**
+   - Parse command arguments for `--fast` or `--detailed` flags
+   - If `--fast` → Execute Fast Planning Workflow (see below)
+   - If `--detailed` or no flag → Execute Detailed Planning Workflow (existing)
+   - Default behavior: Detailed mode (maintain backward compatibility)
+
+### Fast Planning Workflow
+
+Execute this workflow when `--fast` flag is provided:
+
+1. **Create Task Tracking:**
+   - Create TodoWrite list for fast planning process (4-5 tasks max)
+
+2. **Launch Minimal Research** (4 agents only, run in parallel):
+   - **GitHub Issue Reader** (Skill tool - if issue-based): Fetch issue details
+   - **Past Learnings Search** (Skill tool): Search for relevant corrections
+   - **Guidelines Check** (Read tool): Read CLAUDE.md and activate language guidelines
+   - **Quick File Scan** (Task tool - Explore subagent, "quick" thoroughness):
+     - Prompt: "Quickly identify the 3-5 most relevant files for [task]. Return file paths only with one-line descriptions. Do not read file contents."
+
+3. **Present Fast Plan Outline:**
+   - Summarize findings from 4 agents
+   - Present quick outline: Summary, Key Files, Implementation Steps, Testing
+   - Ask: "Does this outline look correct, or should I run detailed planning?"
+   - If user requests detailed → Switch to detailed workflow
+   - If user approves → Continue to generation
+
+4. **Generate Fast Plan:**
+   - Invoke iw-init skill to ensure .docs structure
+   - Run: `scripts/init_plan.py <issue-number> --type issue --mode fast`
+   - Customize the single fast-plan file with research findings
+   - Keep output under 100 lines for simple tasks
+   - Include upgrade prompt at bottom
+
+5. **Present Fast Plan with Upgrade Option:**
+   - Display file location
+   - Remind user they can upgrade with `/iw-plan <issue> --detailed`
+   - Explain that user edits will be preserved during upgrade
+
+### Detailed Planning Workflow (Enhanced)
+
+Execute this workflow when `--detailed` flag is provided or no flag specified:
+
+1. **Check for Existing Fast Plan:**
+   - Look for `<issue-number>-fast-plan.md` or `<name>-fast-plan.md` in plan directory
+   - If found, read it completely using Read tool
+   - Extract user comments, edits, and questions
+   - Document in research.md: "User edits from fast plan: [list]"
+   - Use fast plan findings as initial context
+
+2. **Check for GitHub Issue:**
    - If issue number provided → Launch `iw-github-issue-reader` agent immediately (don't wait!)
    - If no issue exists → Prompt user to create one for history tracking
    - If user wants ad-hoc plan → Proceed with ad-hoc workflow
 
-2. **Detect language and activate guidelines:**
+3. **Detect language and activate guidelines:**
    - Identify project language (Go, Python, TypeScript, etc.)
    - Activate appropriate guidelines skill (e.g., go-dev-guidelines)
    - Use throughout planning for coding patterns and architecture
 
-3. **Launch parallel research tasks:**
+4. **Launch parallel research tasks:**
    - While waiting for user input, launch multiple Skill and Task tool invocations concurrently:
      - Past learnings search (iw-learnings skill)
      - Codebase exploration (Explore subagent)
@@ -69,16 +179,16 @@ Start by determining what information is available and launching agents immediat
      - Guidelines verification (Explore subagent)
    - Agents gather information in parallel for maximum efficiency
 
-4. **Parameters provided** (file path, ticket reference)?
+5. **Parameters provided** (file path, ticket reference)?
    - YES → Read files immediately after agents return results
    - NO → Request task description and context from user
 
-5. **After gathering context:**
+6. **After gathering context:**
    - Create TodoWrite task list to track planning process
    - Review Task agent findings and read identified files
    - Present comprehensive findings with focused questions
 
-6. **After alignment on approach:**
+7. **After alignment on approach:**
    - Optionally use Task tool to generate draft for complex plans
    - Create plan structure outline
    - Get feedback on structure
@@ -355,6 +465,180 @@ For complex plans, consider using Task tool to generate initial draft:
 
 **When to use:** Complex multi-phase implementations with extensive research findings.
 
+## Fast Plan Generation (for --fast mode)
+
+After minimal research and user approval of outline in fast planning workflow:
+
+### Customize Fast Plan File
+
+After running init_plan.py in fast mode, customize the single file:
+
+**File**: `.docs/issues/<issue-number>/<issue-number>-fast-plan.md` or `.docs/adhoc/<name>/<name>-fast-plan.md`
+
+Fill in these sections concisely:
+
+1. **Summary** (2-3 sentences):
+   - What is being implemented
+   - Why it's needed
+   - Expected outcome
+
+2. **Context** (3-5 bullet points):
+   - Key information from GitHub issue
+   - Relevant past learnings found
+   - Main files identified by quick scan
+   - Key guidelines from CLAUDE.md
+
+3. **Implementation Steps** (numbered list, 3-8 steps):
+   - High-level steps to implement
+   - File references with line numbers from quick scan
+   - Brief rationale for each step
+   - No detailed code examples (defer to detailed plan)
+
+4. **Testing** (brief, 3-5 lines):
+   - Key test scenarios to verify
+   - Test commands to run
+   - No detailed test code (defer to detailed plan)
+
+5. **Success Criteria**:
+   - **Automated**: 2-3 verification commands
+   - **Manual**: 2-3 manual checks
+
+6. **Notes**:
+   - Any open questions for user
+   - Caveats or assumptions made
+   - Suggestions for detailed planning if complexity increases
+
+**Keep total output under 100 lines for simple tasks.**
+
+Example fast plan for "Change button color from blue to green":
+
+```markdown
+# Issue #42 - Quick Implementation Plan
+
+**Created**: 2025-11-04
+**Issue**: https://github.com/owner/repo/issues/42
+**Mode**: Fast Plan
+
+---
+
+## Summary
+
+Change the primary button color from blue to green across the application. This is a simple CSS update affecting the button component styling.
+
+## Context
+
+- Issue requests green (#28a745) instead of current blue (#007bff)
+- Main file: `src/components/Button.css:15-20`
+- Past learning: Always check both light and dark theme variables
+- Guideline: Follow existing CSS variable naming conventions
+
+## Implementation Steps
+
+1. Update primary button color variable in `src/components/Button.css:15`
+   - Change `--btn-primary: #007bff` to `--btn-primary: #28a745`
+
+2. Update hover state color in `src/components/Button.css:18`
+   - Change `--btn-primary-hover: #0056b3` to `--btn-primary-hover: #218838`
+
+3. Check dark theme variables in `src/styles/dark-theme.css:45`
+   - Verify primary button color is consistent
+
+4. Verify contrast ratios meet accessibility guidelines
+   - Use browser DevTools accessibility checker
+
+## Testing
+
+- Visual check: Verify buttons appear green in light and dark themes
+- Run: `npm run test-visual-regression`
+- Manual: Test hover states, focus states, disabled states
+
+## Success Criteria
+
+### Automated:
+- [ ] Visual regression tests pass: `npm run test-visual-regression`
+- [ ] Build succeeds: `npm run build`
+
+### Manual:
+- [ ] Buttons appear green in both themes
+- [ ] Hover/focus states work correctly
+- [ ] Contrast ratios are acceptable (WCAG AA)
+
+## Notes
+
+This is a straightforward change. If additional button variants need color updates, consider running detailed planning to map all affected components.
+
+---
+
+**Need more detail?** Run: `/iw-plan 42 --detailed`
+```
+
+This example is ~75 lines - appropriate for simple task. Complex tasks would naturally be longer but still under 100 lines in most cases.
+
+## Extracting User Content from Fast Plans (for upgrade path)
+
+When a fast plan exists and user runs detailed mode, distinguish between template content and user additions:
+
+### Template Indicators (ignore these):
+- Placeholder text: "[Brief 1-2 sentence summary]", "[Key context]"
+- Sections with no content beyond headers
+- Exact template phrasing
+
+### User Content Indicators (preserve these):
+- Specific file paths, function names, line numbers
+- Technical details or code snippets
+- Questions marked with "?" or "TODO:"
+- Markdown comments: `<!-- user note -->`
+- Bold/italic emphasis added by user
+- Content that doesn't match template structure
+- Additional sections not in template
+
+### Parsing Strategy:
+
+1. **Read entire fast plan** into context
+2. **Section-by-section analysis:**
+   - Extract Summary section - check if it's not placeholder text
+   - Extract Notes section (most likely to have user additions)
+   - Extract questions (scan for "?" patterns)
+   - Look for markdown comments `<!-- ... -->`
+
+3. **Preserve in detailed plan:**
+   - User questions → Research.md "Questions from Fast Plan" section
+   - User insights → Context.md "Background from Fast Plan"
+   - User concerns → Plan.md relevant phase sections
+
+### Example:
+
+Fast plan Notes section:
+```markdown
+## Notes
+
+<!-- User is concerned about database migration -->
+Need to verify this won't break existing API consumers. The /api/users endpoint currently returns field names in snake_case, but if we change to camelCase, existing clients might break.
+
+TODO: Check if we have versioning strategy for API changes.
+```
+
+Extracted user content:
+- Concern: API breaking change (snake_case → camelCase)
+- Question: Versioning strategy for API changes
+- Context: /api/users endpoint affected
+
+Preserved in detailed plan research.md:
+```markdown
+## Fast Plan Review
+
+### User Concerns from Fast Plan:
+- User identified potential breaking change: /api/users endpoint field name format
+- Concern about existing API consumers expecting snake_case
+- Question raised: Do we have API versioning strategy?
+
+### Resolution:
+Detailed research will investigate:
+1. Current API versioning approach (search codebase for API version patterns)
+2. Impact analysis on /api/users consumers
+3. Migration strategy options (versioned endpoint vs feature flag)
+```
+
 ## Step 4: Detailed Plan Writing
 
 **⚠️ REMINDER: Verify any user corrections are documented in research.md and `.docs/knowledge/learnings/` before proceeding. ⚠️**
@@ -563,6 +847,100 @@ Please review:
 
 Iterate based on feedback and continue refining until the user is satisfied.
 
+## Edge Cases and Error Handling
+
+### Fast Plan Already Exists
+
+If user runs `/iw-plan <issue> --fast` but fast plan already exists:
+
+1. **Detect existing fast plan** (check file exists)
+2. **Ask user:**
+   ```
+   A fast plan already exists for this issue:
+   .docs/issues/<issue>/<issue>-fast-plan.md
+
+   Options:
+   1. View existing fast plan
+   2. Regenerate fast plan (overwrites current)
+   3. Upgrade to detailed plan
+
+   What would you like to do?
+   ```
+3. **Handle response:**
+   - View: Read and display existing plan
+   - Regenerate: Warn about overwriting, confirm, then regenerate
+   - Upgrade: Switch to detailed mode workflow
+
+### Detailed Plan Already Exists
+
+If user runs `/iw-plan <issue> --detailed` but detailed plan (4 files) already exists:
+
+1. **Detect existing detailed plan** (check if all 4 files exist)
+2. **Ask user:**
+   ```
+   A detailed plan already exists for this issue:
+   .docs/issues/<issue>/
+
+   Options:
+   1. View existing plan
+   2. Update existing plan (re-research and merge)
+   3. Start fresh (archive current plan)
+
+   What would you like to do?
+   ```
+3. **Handle response based on user choice**
+
+### No Issue Number Provided
+
+If user runs `/iw-plan --fast` without issue number or description:
+
+1. **Prompt for information:**
+   ```
+   Please provide either:
+   - An issue number: /iw-plan 123 --fast
+   - A task description: /iw-plan "add user authentication" --fast
+   ```
+
+### Conflicting Flags
+
+If user runs `/iw-plan <issue> --fast --detailed`:
+
+1. **Detect conflict**
+2. **Prefer detailed mode** (more comprehensive is safer)
+3. **Notify user:**
+   ```
+   Both --fast and --detailed flags provided. Using --detailed mode (comprehensive planning).
+   ```
+
+### Fast Plan Upgrade with No User Edits
+
+If fast plan exists but user made no edits (still all placeholder text):
+
+1. **Detect during detailed mode** (check if content matches template exactly)
+2. **Notify user:**
+   ```
+   Fast plan exists but appears unchanged. Proceeding with detailed planning.
+   This will generate the full 4-file plan structure.
+   ```
+3. **Continue with detailed planning** (no special preservation needed)
+
+### Empty or Corrupted Fast Plan
+
+If fast plan file exists but is empty or malformed:
+
+1. **Attempt to read file**
+2. **If read fails or file is empty:**
+   ```
+   Warning: Existing fast plan file is empty or unreadable.
+   Proceeding with fresh detailed planning.
+   ```
+3. **Log warning in research.md:**
+   ```markdown
+   ## Issues During Planning
+
+   - Fast plan file existed but was empty/corrupted, ignored
+   ```
+
 ## Resources
 
 ### scripts/
@@ -571,8 +949,9 @@ Iterate based on feedback and continue refining until the user is satisfied.
 
 ### assets/
 
-- `plan-template.md` - Template for the main implementation plan
-- `research-template.md` - Template for research and working notes
+- `plan-template.md` - Template for the main implementation plan (detailed mode)
+- `research-template.md` - Template for research and working notes (detailed mode)
+- `fast-plan-template.md` - Template for quick implementation plans (fast mode)
 - `context-template.md` - Template for quick reference context
 - `tasks-template.md` - Template for actionable task checklist
 

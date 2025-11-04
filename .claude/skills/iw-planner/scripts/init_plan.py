@@ -29,13 +29,14 @@ def replace_placeholders(content, replacements):
     return content
 
 
-def init_plan(plan_id, plan_type="issue"):
+def init_plan(plan_id, plan_type="issue", plan_mode="detailed"):
     """
     Initialize a new implementation plan structure.
 
     Args:
         plan_id: The issue number (for issue plans) or plan name (for adhoc plans)
         plan_type: Either "issue" or "adhoc" (default: issue)
+        plan_mode: Either "fast" or "detailed" (default: detailed)
     """
     # Determine base directory based on plan type
     if plan_type == "issue":
@@ -57,6 +58,14 @@ def init_plan(plan_id, plan_type="issue"):
         display_name = f"Issue #{plan_id}"
     else:
         display_name = str(plan_id).replace("-", " ").title()
+
+    # Determine issue URL and number based on plan type
+    if plan_type == "issue":
+        issue_url = f"https://github.com/jumppad-labs/iw/issues/{plan_id}"
+        issue_number = str(plan_id)
+    else:
+        issue_url = "N/A"
+        issue_number = "N/A"
 
     replacements = {
         "TASK_NAME": display_name,
@@ -84,15 +93,29 @@ def init_plan(plan_id, plan_type="issue"):
         "DECISION_2": "Another Decision Topic",
         "TICKET_PATH": f"GitHub Issue #{plan_id}" if plan_type == "issue" else "N/A",
         "PHASE_2_NAME": "Next Phase",
+        "ISSUE_URL": issue_url,
+        "ISSUE_NUMBER": issue_number,
+        "SUMMARY": "[Brief 1-2 sentence summary]",
+        "CONTEXT": "[Key context and requirements from issue]",
+        "IMPLEMENTATION_STEPS": "[Step-by-step implementation approach]",
+        "TESTING": "[Test approach and key scenarios]",
+        "AUTOMATED_VERIFICATION": "- [ ] Tests pass: `make test`\n- [ ] Build succeeds: `make build`",
+        "MANUAL_VERIFICATION": "- [ ] [Manual verification step]",
+        "NOTES": "[Additional notes or considerations]",
     }
 
-    # Define the files to create
-    files = {
-        f"{plan_id}-plan.md": "plan-template.md",
-        f"{plan_id}-research.md": "research-template.md",
-        f"{plan_id}-context.md": "context-template.md",
-        f"{plan_id}-tasks.md": "tasks-template.md",
-    }
+    # Define the files to create based on mode
+    if plan_mode == "fast":
+        files = {
+            f"{plan_id}-fast-plan.md": "fast-plan-template.md",
+        }
+    else:
+        files = {
+            f"{plan_id}-plan.md": "plan-template.md",
+            f"{plan_id}-research.md": "research-template.md",
+            f"{plan_id}-context.md": "context-template.md",
+            f"{plan_id}-tasks.md": "tasks-template.md",
+        }
 
     # Create each file from its template
     created_files = []
@@ -130,25 +153,38 @@ def main():
         default="issue",
         help="Type of plan: 'issue' for GitHub issue-based plans, 'adhoc' for standalone plans (default: issue)"
     )
+    parser.add_argument(
+        "--mode",
+        choices=["fast", "detailed"],
+        default="detailed",
+        help="Plan mode: 'fast' (single file) or 'detailed' (4 files) (default: detailed)"
+    )
 
     args = parser.parse_args()
 
     try:
-        plan_dir, created_files = init_plan(args.plan_id, args.type)
+        plan_dir, created_files = init_plan(args.plan_id, args.type, args.mode)
 
-        print(f"✅ Implementation plan initialized successfully!")
-        print(f"\nPlan type: {args.type}")
-        print(f"Plan directory: {plan_dir}")
-        print(f"\nFiles created:")
-        for file_path in created_files:
-            print(f"  - {file_path}")
-        print(f"\nNext steps:")
-        print(f"  1. Review and customize the generated files")
-        print(f"  2. Begin research and update {args.plan_id}-research.md")
-        print(f"  3. Fill in the implementation details in {args.plan_id}-plan.md")
+        if args.mode == "fast":
+            print(f"✅ Fast plan initialized successfully!")
+            print(f"\nPlan type: {args.type}")
+            print(f"Plan directory: {plan_dir}")
+            print(f"\nPlan file: {created_files[0]}")
+            print(f"\nTo upgrade to detailed plan: /iw-plan {args.plan_id} --detailed")
+        else:
+            print(f"✅ Detailed plan initialized successfully!")
+            print(f"\nPlan type: {args.type}")
+            print(f"Plan directory: {plan_dir}")
+            print(f"\nFiles created:")
+            for file_path in created_files:
+                print(f"  - {file_path}")
+            print(f"\nNext steps:")
+            print(f"  1. Review and customize the generated files")
+            print(f"  2. Begin research and update {args.plan_id}-research.md")
+            print(f"  3. Fill in the implementation details in {args.plan_id}-plan.md")
 
-        if args.type == "issue":
-            print(f"\nLinked to GitHub Issue #{args.plan_id}")
+            if args.type == "issue":
+                print(f"\nLinked to GitHub Issue #{args.plan_id}")
 
     except Exception as e:
         print(f"❌ Error: {e}", file=sys.stderr)
